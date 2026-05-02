@@ -107,57 +107,63 @@ export function useBtcEngine() {
 
   // ── Run prediction ────────────────────────────────────────────────
   const runPrediction = useCallback(async (ts, ptb, sourceRaw, sourceIcon) => {
-    if (predInProgress.current) return
-    predInProgress.current = true
-    setPredStatus('loading')
-    setPrediction(null)
+    if (predInProgress.current) return;
+    predInProgress.current = true;
+    setPredStatus('loading');
+    setPrediction(null);
 
-    const cp = currentPriceRef.current
-    let pred
+    const cp = currentPriceRef.current;
+    let pred;
 
     try {
-      const prompt = `You are an expert trader analysing Polymarket BTC 5-minute Up/Down binary markets.
+      const r = await fetch(`${BACKEND}/api/predict/${ts}`);
+      const ta = await r.json();
 
-Context:
-- Polymarket binary market: BTC price at candle END vs candle START (Chainlink BTC/USD)
-- Resolves "Up" if final price >= opening price
-- Price To Beat (Chainlink candle open): $${ptb?.toLocaleString() ?? 'unknown'}
-- Current BTC price (Chainlink): $${cp?.toLocaleString() ?? 'unknown'}
-- Current diff from open: ${ptb && cp ? (((cp - ptb) / ptb) * 100).toFixed(4) + '%' : 'unknown'}
-- Candle started at: ${new Date(ts * 1000).toUTCString()}
-
-Analyse this 5-minute candle and predict whether BTC will close ABOVE or BELOW the Price To Beat.
-
-Respond ONLY in this exact JSON format, no extra text:
-{"direction":"UP","confidence":68,"analysis":"Short 2-sentence analysis.","risk":"One risk factor."}`
-
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 300,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      })
-      const data = await resp.json()
-      const raw = data.content?.map(b => b.text || '').join('') || ''
-      pred = JSON.parse(raw.replace(/```json|```/g, '').trim())
+      if (ta.skip) {
+        // Low confluence — don't trade
+        pred = {
+          direction: ta.direction || 'SKIP',
+          confidence: ta.confidence || 45,
+          skip: true,
+          analysis: `Skip — ${ta.reason}`,
+          risk: 'Insufficient signal confluence. Wait for next candle.',
+          signals: ta.signals,
+          score: ta.score,
+          bearScore: ta.bearScore,
+        };
+      } else {
+        pred = {
+          direction: ta.direction,
+          confidence: ta.confidence,
+          skip: false,
+          analysis: `${ta.score} bull / ${ta.bearScore} bear signals. ${ta.reason}.`,
+          risk: buildRiskText(ta.signals),
+          signals: ta.signals,
+          score: ta.score,
+          bearScore: ta.bearScore,
+        };
+      }
     } catch {
-      const diff = ptb && cp ? cp - ptb : 0
+      // Pure fallback — price delta only
+      const diff = ptb && cp ? cp - ptb : 0;
       pred = {
         direction: diff >= 0 ? 'UP' : 'DOWN',
-        confidence: 53,
-        analysis: `Momentum estimate. BTC is ${diff >= 0 ? 'above' : 'below'} the candle open.`,
-        risk: 'No AI analysis available — using price delta only.',
-      }
+        confidence: 51,
+        skip: false,
+        analysis: 'Backend unavailable — using price delta only.',
+        risk: 'No TA signals available.',
+        signals: {},
+        score: 0,
+        bearScore: 0,
+      };
     }
 
-    setPrediction(pred)
-    setPredStatus('done')
-    predInProgress.current = false
+    setPrediction(pred);
+    setPredStatus('done');
+    predInProgress.current = false;
 
-    // Save to DB
+    if (pred.skip) return; // Don't save skipped trades to DB
+
     const tradePayload = {
       id: ts,
       timestamp: new Date(ts * 1000).toISOString(),
@@ -168,54 +174,43 @@ Respond ONLY in this exact JSON format, no extra text:
       priceToBeatSource: sourceIcon,
       analysis: pred.analysis,
       risk: pred.risk,
+      score: pred.score,
+      bearScore: pred.bearScore,
       status: 'pending',
-    }
-    await saveTradeToDb(tradePayload)
+    };
+    await saveTradeToDb(tradePayload);
 
-    // Check for exact PTB 10s later if not exact
     if (sourceRaw !== 'polymarket_exact') {
-      console.log(`[PTB Check] Initial source was '${sourceRaw}'. Starting 10s timer to fetch exact PTB...`);
       setTimeout(async () => {
-        console.log(`[PTB Check] 10s passed. Fetching PTB for candle ${ts} again...`);
-        const exactData = await fetchPtb(ts)
-        console.log(`[PTB Check] New PTB source received: '${exactData.sourceRaw}' (Price: ${exactData.ptb})`);
-        
+        const exactData = await fetchPtb(ts);
         if (exactData.sourceRaw === 'polymarket_exact') {
-          console.log(`[PTB Check] SUCCESS! Found exact Polymarket PTB. Updating database...`);
           try {
-            const updateRes = await fetch(`${BACKEND}/api/trades/${ts}`, {
+            await fetch(`${BACKEND}/api/trades/${ts}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                priceToBeat: exactData.ptb,
-                priceToBeatSource: exactData.sourceIcon
-              }),
-            })
-            if (updateRes.ok) {
-              console.log(`[PTB Check] Database updated successfully with exact PTB.`);
-            } else {
-              console.warn(`[PTB Check] Database update returned status ${updateRes.status}`);
-            }
-          } catch (e) {
-            console.warn('[PTB Check] Failed to update exact PTB in DB:', e)
-          }
-        } else {
-          console.log(`[PTB Check] Still no exact PTB from Polymarket after 10s. Keeping fallback.`);
+              body: JSON.stringify({ priceToBeat: exactData.ptb, priceToBeatSource: exactData.sourceIcon }),
+            });
+          } catch { }
         }
-      }, 10000)
-    } else {
-      console.log(`[PTB Check] Initial source is already exact ('polymarket_exact'). No 10s check needed.`);
+      }, 10000);
     }
 
-    // Resolve after 5 minutes
     setTimeout(async () => {
-      await fetchBtcPrice()
-      const closePrice = currentPriceRef.current
-      const wentUp = closePrice >= ptb
-      const result = (wentUp && pred.direction === 'UP') || (!wentUp && pred.direction === 'DOWN') ? 'win' : 'loss'
-      await resolveTradeInDb(ts, closePrice, result)
-    }, 300000)
-  }, [saveTradeToDb, resolveTradeInDb, fetchBtcPrice, fetchPtb])
+      await fetchBtcPrice();
+      const closePrice = currentPriceRef.current;
+      const wentUp = closePrice >= ptb;
+      const result = (wentUp && pred.direction === 'UP') || (!wentUp && pred.direction === 'DOWN') ? 'win' : 'loss';
+      await resolveTradeInDb(ts, closePrice, result);
+    }, 300000);
+  }, [saveTradeToDb, resolveTradeInDb, fetchBtcPrice, fetchPtb]);
+
+  // Helper
+  function buildRiskText(signals) {
+    const weak = Object.values(signals || {})
+      .filter(s => s.bull === null)
+      .map(s => s.name);
+    return weak.length ? `Weak/neutral: ${weak.join(', ')}` : 'All signals confirmed.';
+  }
 
   // ── New candle handler ────────────────────────────────────────────
   const onNewCandle = useCallback(async (ts) => {

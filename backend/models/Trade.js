@@ -16,6 +16,8 @@ const tradeSchema = new mongoose.Schema({
   priceToBeatSource: { type: String, default: null },
   analysis: { type: String, default: null },
   risk: { type: String, default: null },
+  score: { type: Number, default: null },
+  bearScore: { type: Number, default: null },
 }, { timestamps: true });
 
 export const Trade = mongoose.model('Trade', tradeSchema);

@@ -1,5 +1,7 @@
-export default function PredictionPanel({ priceToBeat, ptbSource, currentPrice, priceAtCandleStart, candleTs, countdown, prediction, predStatus }) {
-
+export default function PredictionPanel({
+  priceToBeat, ptbSource, currentPrice, priceAtCandleStart,
+  candleTs, countdown, prediction, predStatus
+}) {
   const diff = priceToBeat && currentPrice
     ? ((currentPrice - priceToBeat) / priceToBeat * 100)
     : null
@@ -9,6 +11,18 @@ export default function PredictionPanel({ priceToBeat, ptbSource, currentPrice, 
 
   const fmt = (n) => n?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const fmtK = (n) => n ? '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
+
+  // Determine pred card state
+  const isSkip = predStatus === 'done' && prediction?.skip
+  const isLoading = predStatus === 'loading'
+  const isEmpty = predStatus === 'empty'
+  const isDone = predStatus === 'done' && prediction && !prediction.skip
+
+  const predCardClass = `pred-card ${isEmpty ? 'empty'
+      : isLoading ? 'loading'
+        : isSkip ? 'skip'
+          : prediction?.direction?.toLowerCase() || 'empty'
+    }`
 
   return (
     <div className="card">
@@ -48,17 +62,52 @@ export default function PredictionPanel({ priceToBeat, ptbSource, currentPrice, 
         </div>
       </div>
 
-      {/* Prediction */}
-      <div className={`pred-card ${predStatus === 'empty' ? 'empty' : predStatus === 'loading' ? 'loading' : prediction?.direction?.toLowerCase() || 'empty'}`}>
-        {predStatus === 'empty' && (
+      {/* Prediction card */}
+      <div className={predCardClass}>
+
+        {isEmpty && (
           <div className="empty-msg">Waiting for candle boundary…</div>
         )}
-        {predStatus === 'loading' && (
+
+        {isLoading && (
           <div className="pred-dir loading">
             <div className="spin" /> Analysing candle…
           </div>
         )}
-        {predStatus === 'done' && prediction && (
+
+        {/* SKIP state */}
+        {isSkip && (
+          <>
+            <div className="pred-top">
+              <div className="pred-dir skip">⏸ SKIP</div>
+              <div className="pred-conf">
+                <div className="conf-num" style={{ color: 'var(--dim)' }}>
+                  {prediction.score ?? 0}/{(prediction.score ?? 0) + (prediction.bearScore ?? 0)}
+                </div>
+                <div>signals</div>
+              </div>
+            </div>
+            <div className="pred-analysis">{prediction.analysis}</div>
+            <div className="pred-risk" style={{ color: 'var(--dim)' }}>
+              ℹ {prediction.risk}
+            </div>
+
+            {/* Signal breakdown on skip */}
+            {prediction.signals && (
+              <div className="signal-grid" style={{ marginTop: 8 }}>
+                {Object.values(prediction.signals).map((s, i) => (
+                  <div key={i} className={`sig-chip ${s.bull === true ? 'bull' : s.bull === false ? 'bear' : 'neutral'}`}>
+                    <span>{s.name}</span>
+                    <span className="sig-detail">{s.detail}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* TRADE state — UP or DOWN */}
+        {isDone && (
           <>
             <div className="pred-top">
               <div className={`pred-dir ${prediction.direction.toLowerCase()}`}>
@@ -77,6 +126,18 @@ export default function PredictionPanel({ priceToBeat, ptbSource, currentPrice, 
             </div>
             <div className="pred-analysis">{prediction.analysis}</div>
             <div className="pred-risk">⚠ {prediction.risk}</div>
+
+            {/* Signal breakdown on trade */}
+            {prediction.signals && (
+              <div className="signal-grid" style={{ marginTop: 8 }}>
+                {Object.values(prediction.signals).map((s, i) => (
+                  <div key={i} className={`sig-chip ${s.bull === true ? 'bull' : s.bull === false ? 'bear' : 'neutral'}`}>
+                    <span>{s.name}</span>
+                    <span className="sig-detail">{s.detail}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>

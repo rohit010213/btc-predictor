@@ -11,8 +11,9 @@ export function useAnalytics() {
   const [hourly, setHourly] = useState([])
   const [daily, setDaily] = useState([])
   const [trades, setTrades] = useState([])
+  const [scorePerformance, setScorePerformance] = useState([]) // NEW
   const [loading, setLoading] = useState(true)
-  
+
   const [selectedDate, setSelectedDate] = useState(() => {
     return localStorage.getItem('btc_dashboard_date') || getISTDateString()
   })
@@ -26,7 +27,9 @@ export function useAnalytics() {
 
   const fetchHourly = useCallback(async (date) => {
     try {
-      const url = date ? `${BACKEND}/api/analytics/hourly?date=${date}` : `${BACKEND}/api/analytics/hourly`
+      const url = date
+        ? `${BACKEND}/api/analytics/hourly?date=${date}`
+        : `${BACKEND}/api/analytics/hourly`
       const r = await fetch(url)
       setHourly(await r.json())
     } catch { }
@@ -41,9 +44,19 @@ export function useAnalytics() {
 
   const fetchTrades = useCallback(async (date) => {
     try {
-      const url = date ? `${BACKEND}/api/trades?date=${date}` : `${BACKEND}/api/trades`
+      const url = date
+        ? `${BACKEND}/api/trades?date=${date}`
+        : `${BACKEND}/api/trades`
       const r = await fetch(url)
       setTrades(await r.json())
+    } catch { }
+  }, [])
+
+  // NEW
+  const fetchScorePerformance = useCallback(async () => {
+    try {
+      const r = await fetch(`${BACKEND}/api/analytics/score-performance`)
+      setScorePerformance(await r.json())
     } catch { }
   }, [])
 
@@ -54,18 +67,16 @@ export function useAnalytics() {
       fetchHourly(date),
       fetchDaily(),
       fetchTrades(date),
+      fetchScorePerformance(), // NEW
     ])
     setLoading(false)
-  }, [fetchSummary, fetchHourly, fetchDaily, fetchTrades])
+  }, [fetchSummary, fetchHourly, fetchDaily, fetchTrades, fetchScorePerformance])
 
   useEffect(() => {
     refresh(selectedDate)
-    
     let lastToday = getISTDateString()
-
     const id = setInterval(() => {
       const currentToday = getISTDateString()
-      // Midnight crossover logic
       if (currentToday !== lastToday) {
         lastToday = currentToday
         setSelectedDate(currentToday)
@@ -74,8 +85,7 @@ export function useAnalytics() {
       } else {
         refresh(selectedDate)
       }
-    }, 60000) // refresh every 1 min
-    
+    }, 60000)
     return () => clearInterval(id)
   }, [refresh, selectedDate])
 
@@ -85,5 +95,9 @@ export function useAnalytics() {
     refresh(date)
   }
 
-  return { summary, hourly, daily, trades, loading, selectedDate, changeDate, refresh }
+  return {
+    summary, hourly, daily, trades,
+    scorePerformance, // NEW
+    loading, selectedDate, changeDate, refresh,
+  }
 }

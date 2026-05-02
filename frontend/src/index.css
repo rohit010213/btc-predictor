@@ -772,6 +772,56 @@ body {
   height: 200px;
 }
 
+
+.pred-card.skip {
+  border-color: var(--dim);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pred-dir.skip {
+  color: var(--dim);
+  font-size: 1.4rem;
+}
+
+.signal-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.sig-chip {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.sig-chip.bull {
+  background: rgba(0, 255, 136, 0.08);
+  color: var(--green);
+  border: 1px solid rgba(0, 255, 136, 0.15);
+}
+
+.sig-chip.bear {
+  background: rgba(255, 68, 68, 0.08);
+  color: var(--red);
+  border: 1px solid rgba(255, 68, 68, 0.15);
+}
+
+.sig-chip.neutral {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--dim);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sig-detail {
+  opacity: 0.6;
+  font-size: 0.6rem;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
   :root {

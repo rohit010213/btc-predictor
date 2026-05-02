@@ -23,6 +23,8 @@ export default function App() {
           hourly={analytics.hourly}
           daily={analytics.daily}
           trades={analytics.trades}
+          scorePerformance={analytics.scorePerformance}
+          summary={analytics.summary}
           selectedDate={analytics.selectedDate}
           changeDate={analytics.changeDate}
           loading={analytics.loading}
@@ -30,7 +32,6 @@ export default function App() {
 
         {/* ── CENTER: Main Content ── */}
         <main className="main-content">
-          {/* Top row: Prediction + Results side by side */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16 }}>
             <PredictionPanel
               priceToBeat={engine.priceToBeat}
@@ -49,7 +50,6 @@ export default function App() {
             />
           </div>
 
-          {/* Footer note */}
           <div style={{
             textAlign: 'center',
             fontSize: '.6rem',

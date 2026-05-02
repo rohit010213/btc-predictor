@@ -1,7 +1,35 @@
 import express from 'express';
 import { getChainlinkState, getCurrentCandleTs } from '../services/chainlinkService.js';
+import { getCandleHistory } from '../services/chainlinkService.js';
+import { runTAEngine } from '../services/taEngine.js';
 
 const router = express.Router();
+
+router.get('/predict/:candleTs', (req, res) => {
+  const candleTs = parseInt(req.params.candleTs);
+  const { candleHistory } = getCandleHistory();
+  const { chainlinkBtcPrice, candlePriceLock } = getChainlinkState();
+
+  const ptbData = candlePriceLock.get(candleTs);
+  const ptb = ptbData?.price || null;
+  const currentPrice = chainlinkBtcPrice;
+
+  const ta = runTAEngine(candleHistory, currentPrice, ptb);
+
+  res.json({
+    candleTs,
+    ptb,
+    currentPrice,
+    direction: ta.direction,
+    confidence: ta.confidence,
+    skip: ta.skip,
+    reason: ta.reason,
+    score: ta.score,
+    bearScore: ta.bearScore,
+    signals: ta.signals,
+    candlesAvailable: candleHistory.length,
+  });
+});
 
 router.get('/chainlink/btc', (req, res) => {
   const { chainlinkBtcPrice, chainlinkPriceTs } = getChainlinkState();
