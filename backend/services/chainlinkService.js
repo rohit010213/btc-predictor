@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws';
-import { Candle } from '../models/candle.js';
+import { Candle } from '../models/Candle.js';
 
 let chainlinkBtcPrice = null;
 let chainlinkPriceTs = null;
