@@ -14,4 +14,4 @@ const candleSchema = new mongoose.Schema({
 // Keep only last 100 candles — older ones useless
 candleSchema.index({ ts: -1 });
 
-export const candle = mongoose.model('candle', candleSchema);
+export const Candle = mongoose.model('Candle', candleSchema);
