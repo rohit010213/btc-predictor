@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || '' // Vite proxy handles /api -> localhost:3001 locally
+const BACKEND = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '') // Vite proxy handles /api -> localhost:3001 locally
 
 const SOURCE_ICON = {
   'polymarket_exact': '✅ Polymarket API (exact)',

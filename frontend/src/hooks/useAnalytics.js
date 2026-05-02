@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || ''
+const BACKEND = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
 
 function getISTDateString() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())
