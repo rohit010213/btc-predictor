@@ -3,6 +3,7 @@ import { Trade } from '../models/Trade.js';
 
 const router = express.Router();
 
+// ── GET /api/trades ───────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
     const { date, limit = 500 } = req.query;
@@ -15,17 +16,28 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ── POST /api/trades ──────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
     const body = req.body;
     const ts = new Date(body.timestamp || Date.now());
+
+    // IST date + hour
     const dateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' });
     const dateStr = dateFormatter.format(ts);
-    const hourFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false });
+    const hourFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      hour12: false,
+    });
     const hour = parseInt(hourFormatter.format(ts)) % 24;
 
+    // candleTs — frontend se aaye toh use karo, warna timestamp se derive karo
+    const candleTs = body.candleTs
+      || Math.floor(ts.getTime() / 1000 / 300) * 300;
+
     const entryDiff = (body.entryPrice && body.priceToBeat)
-      ? ((body.entryPrice - body.priceToBeat) / body.priceToBeat * 100)
+      ? (body.entryPrice - body.priceToBeat) / body.priceToBeat * 100
       : null;
 
     const trade = new Trade({
@@ -33,6 +45,7 @@ router.post('/', async (req, res) => {
       timestamp: ts,
       date: dateStr,
       hour,
+      candleTs,   // always saved now
       entryDiff,
     });
 
@@ -47,6 +60,7 @@ router.post('/', async (req, res) => {
   }
 });
 
+// ── PUT /api/trades/:id ───────────────────────────────────────
 router.put('/:id', async (req, res) => {
   try {
     const update = req.body;

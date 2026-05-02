@@ -92,19 +92,6 @@ export function useBtcEngine() {
     }
   }, [])
 
-  // ── Resolve trade in DB ───────────────────────────────────────────
-  const resolveTradeInDb = useCallback(async (id, resolvePrice, result) => {
-    try {
-      await fetch(`${BACKEND}/api/trades/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resolvePrice, result, status: 'resolved' }),
-      })
-    } catch (e) {
-      console.warn('Failed to resolve trade:', e)
-    }
-  }, [])
-
   // ── Run prediction ────────────────────────────────────────────────
   const runPrediction = useCallback(async (ts, ptb, sourceRaw, sourceIcon) => {
     if (predInProgress.current) return;
@@ -130,6 +117,8 @@ export function useBtcEngine() {
           signals: ta.signals,
           score: ta.score,
           bearScore: ta.bearScore,
+          weightedBull: ta.weightedBull,
+          weightedBear: ta.weightedBear,
         };
       } else {
         pred = {
@@ -141,6 +130,8 @@ export function useBtcEngine() {
           signals: ta.signals,
           score: ta.score,
           bearScore: ta.bearScore,
+          weightedBull: ta.weightedBull,
+          weightedBear: ta.weightedBear,
         };
       }
     } catch {
@@ -155,6 +146,8 @@ export function useBtcEngine() {
         signals: {},
         score: 0,
         bearScore: 0,
+        weightedBull: 0,
+        weightedBear: 0,
       };
     }
 
@@ -166,6 +159,7 @@ export function useBtcEngine() {
 
     const tradePayload = {
       id: ts,
+      candleTs: ts, // Explicitly send candleTs
       timestamp: new Date(ts * 1000).toISOString(),
       direction: pred.direction,
       confidence: pred.confidence,
@@ -176,10 +170,13 @@ export function useBtcEngine() {
       risk: pred.risk,
       score: pred.score,
       bearScore: pred.bearScore,
+      weightedBull: pred.weightedBull, // Send weighted scores
+      weightedBear: pred.weightedBear,
       status: 'pending',
     };
     await saveTradeToDb(tradePayload);
 
+    // After 10s, check if we can get a better PTB from Polymarket exact
     if (sourceRaw !== 'polymarket_exact') {
       setTimeout(async () => {
         const exactData = await fetchPtb(ts);
@@ -194,15 +191,7 @@ export function useBtcEngine() {
         }
       }, 10000);
     }
-
-    setTimeout(async () => {
-      await fetchBtcPrice();
-      const closePrice = currentPriceRef.current;
-      const wentUp = closePrice >= ptb;
-      const result = (wentUp && pred.direction === 'UP') || (!wentUp && pred.direction === 'DOWN') ? 'win' : 'loss';
-      await resolveTradeInDb(ts, closePrice, result);
-    }, 300000);
-  }, [saveTradeToDb, resolveTradeInDb, fetchBtcPrice, fetchPtb]);
+  }, [saveTradeToDb, fetchBtcPrice, fetchPtb]);
 
   // Helper
   function buildRiskText(signals) {

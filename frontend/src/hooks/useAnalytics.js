@@ -11,7 +11,8 @@ export function useAnalytics() {
   const [hourly, setHourly] = useState([])
   const [daily, setDaily] = useState([])
   const [trades, setTrades] = useState([])
-  const [scorePerformance, setScorePerformance] = useState([]) // NEW
+  const [scorePerformance, setScorePerformance] = useState([])
+  const [heatmap, setHeatmap] = useState([])
   const [loading, setLoading] = useState(true)
 
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -52,11 +53,17 @@ export function useAnalytics() {
     } catch { }
   }, [])
 
-  // NEW
   const fetchScorePerformance = useCallback(async () => {
     try {
       const r = await fetch(`${BACKEND}/api/analytics/score-performance`)
       setScorePerformance(await r.json())
+    } catch { }
+  }, [])
+
+  const fetchHeatmap = useCallback(async () => {
+    try {
+      const r = await fetch(`${BACKEND}/api/analytics/heatmap`)
+      setHeatmap(await r.json())
     } catch { }
   }, [])
 
@@ -67,10 +74,11 @@ export function useAnalytics() {
       fetchHourly(date),
       fetchDaily(),
       fetchTrades(date),
-      fetchScorePerformance(), // NEW
+      fetchScorePerformance(),
+      fetchHeatmap(),
     ])
     setLoading(false)
-  }, [fetchSummary, fetchHourly, fetchDaily, fetchTrades, fetchScorePerformance])
+  }, [fetchSummary, fetchHourly, fetchDaily, fetchTrades, fetchScorePerformance, fetchHeatmap])
 
   useEffect(() => {
     refresh(selectedDate)
@@ -97,7 +105,7 @@ export function useAnalytics() {
 
   return {
     summary, hourly, daily, trades,
-    scorePerformance, // NEW
+    scorePerformance, heatmap,
     loading, selectedDate, changeDate, refresh,
   }
 }

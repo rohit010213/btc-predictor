@@ -25,6 +25,7 @@ export default function App() {
           trades={analytics.trades}
           scorePerformance={analytics.scorePerformance}
           summary={analytics.summary}
+          heatmap={analytics.heatmap}
           selectedDate={analytics.selectedDate}
           changeDate={analytics.changeDate}
           loading={analytics.loading}

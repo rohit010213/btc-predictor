@@ -57,7 +57,6 @@ function HourlySection({ hourly }) {
           <div className="stat-val red">{hourData.losses}</div>
           <div className="stat-lbl">Losses</div>
         </div>
-        {/* NEW — avg score for this hour */}
         {hourData.avgScore != null && (
           <div className="stat-box">
             <div className="stat-val" style={{ color: '#7eb8ff' }}>{hourData.avgScore}</div>
@@ -79,24 +78,34 @@ function HourlySection({ hourly }) {
             : '—'
           const res = t.status === 'pending' ? 'PEND' : t.result === 'win' ? 'WIN ✓' : 'LOSS ✗'
           const rCls = t.status === 'pending' ? 'pending' : t.result
+          const diffStr = t.entryDiff != null ? (t.entryDiff > 0 ? '+' : '') + t.entryDiff.toFixed(2) + '%' : null
+          
           return (
-            <div key={t.id} className="trade-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
-              <span className={`tr-dir ${(t.direction || '').toLowerCase()}`} style={{ minWidth: 40 }}>
-                {t.direction}
-              </span>
-              <span style={{ fontSize: 11, color: '#8899bb', flex: 1, textAlign: 'center' }}>
-                PTB: <span style={{ color: '#e8eeff' }}>{ptbStr}</span>
-                <br />
-                Res: <span style={{ color: '#e8eeff' }}>{resStr}</span>
-                {/* NEW — score badge */}
-                {t.score != null && (
-                  <>
-                    <br />
-                    <span style={{ color: '#7eb8ff' }}>Score: {t.score}/{t.score + (t.bearScore ?? 0)}</span>
-                  </>
-                )}
-              </span>
-              <span className={`tr-res ${rCls}`} style={{ minWidth: 50, textAlign: 'right' }}>{res}</span>
+            <div key={t.id} className="trade-row" style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className={`tr-dir ${(t.direction || '').toLowerCase()}`} style={{ fontWeight: 600 }}>
+                  {t.direction}
+                </span>
+                <span className={`tr-res ${rCls}`} style={{ fontSize: 10 }}>{res}</span>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ fontSize: 10, color: '#8899bb' }}>
+                  PTB: <span style={{ color: '#e8eeff' }}>{ptbStr}</span>
+                  {diffStr && <div style={{ fontSize: 8, color: t.entryDiff > 0 ? '#00e676' : '#ff1744' }}>{diffStr} from Entry</div>}
+                </div>
+                <div style={{ fontSize: 10, color: '#8899bb', textAlign: 'right' }}>
+                  Res: <span style={{ color: '#e8eeff' }}>{resStr}</span>
+                  {t.resolveSource && <div style={{ fontSize: 8, opacity: 0.6 }}>via {t.resolveSource}</div>}
+                </div>
+              </div>
+
+              {t.score != null && (
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <span style={{ fontSize: 9, color: '#7eb8ff' }}>Score: {t.score}/{t.score + (t.bearScore ?? 0)}⚡</span>
+                   {t.confidence && <span style={{ fontSize: 9, color: '#8899bb' }}>{t.confidence}% conf</span>}
+                </div>
+              )}
             </div>
           )
         })}
@@ -126,7 +135,6 @@ function DailySection({ daily, selectedDate }) {
           <div className="stat-val red">{dateData.losses}</div>
           <div className="stat-lbl">Losses</div>
         </div>
-        {/* NEW */}
         {dateData.avgScore != null && (
           <div className="stat-box">
             <div className="stat-val" style={{ color: '#7eb8ff' }}>{dateData.avgScore}</div>
@@ -144,7 +152,7 @@ function DailySection({ daily, selectedDate }) {
             <th>W</th>
             <th>L</th>
             <th>Rate</th>
-            <th>Avg⚡</th>{/* NEW */}
+            <th>Avg⚡</th>
           </tr>
         </thead>
         <tbody>
@@ -158,7 +166,7 @@ function DailySection({ daily, selectedDate }) {
               <td style={{ color: '#00e676' }}>{d.wins}</td>
               <td style={{ color: '#ff1744' }}>{d.losses}</td>
               <td><WrPill wr={d.winRate} /></td>
-              <td style={{ color: '#7eb8ff', fontSize: 10 }}>{d.avgScore ?? '—'}</td>{/* NEW */}
+              <td style={{ color: '#7eb8ff', fontSize: 10 }}>{d.avgScore ?? '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -177,23 +185,30 @@ function TradeListSection({ trades }) {
       <div className="trade-list">
         {trades.slice(0, 100).map(t => {
           const time = t.timestamp
-            ? `${new Date(t.timestamp).toUTCString().slice(17, 22)} UTC (${new Date(t.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false })} IST)`
+            ? `${new Date(t.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false })} IST`
             : '—'
           const ptbStr = t.priceToBeat
             ? '$' + parseFloat(t.priceToBeat).toLocaleString('en-US', { maximumFractionDigits: 0 })
             : '—'
           const res = t.status === 'pending' ? 'PEND' : t.result === 'win' ? 'WIN ✓' : 'LOSS ✗'
           const rCls = t.status === 'pending' ? 'pending' : t.result
+          const diffStr = t.entryDiff != null ? (t.entryDiff > 0 ? '+' : '') + t.entryDiff.toFixed(2) + '%' : null
+
           return (
-            <div key={t.id || t._id} className="trade-row">
-              <span className={`tr-dir ${(t.direction || '').toLowerCase()}`}>{t.direction}</span>
-              <span className="tr-time">{time}</span>
-              <span className="tr-ptb">{ptbStr}</span>
-              {/* NEW — score badge inline */}
-              {t.score != null && (
-                <span style={{ fontSize: 9, color: '#7eb8ff', minWidth: 28 }}>{t.score}⚡</span>
-              )}
-              <span className={`tr-res ${rCls}`}>{res}</span>
+            <div key={t.id || t._id} className="trade-row" style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className={`tr-dir ${(t.direction || '').toLowerCase()}`} style={{ fontSize: 10 }}>{t.direction}</span>
+                  <span style={{ fontSize: 9, color: '#8899bb' }}>{time}</span>
+                </div>
+                <span className={`tr-res ${rCls}`} style={{ fontSize: 9 }}>{res}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontSize: 10, color: '#e8eeff' }}>{ptbStr}</span>
+                {diffStr && <span style={{ fontSize: 8, color: t.entryDiff > 0 ? '#00e676' : '#ff1744', opacity: 0.8 }}>{diffStr} from Entry</span>}
+                {t.score != null && <span style={{ fontSize: 9, color: '#7eb8ff' }}>{t.score}⚡</span>}
+              </div>
+              {t.resolveSource && <div style={{ fontSize: 7, color: 'var(--dim)', textAlign: 'right' }}>src: {t.resolveSource}</div>}
             </div>
           )
         })}
@@ -202,17 +217,14 @@ function TradeListSection({ trades }) {
   )
 }
 
-// ── Score Performance (NEW) ────────────────────────────────────────
+// ── Score Performance ──────────────────────────────────────────────
 function ScoreSection({ scorePerformance, summary }) {
   if (!scorePerformance?.length) return (
-    <div className="empty-msg">
-      No score data yet — trades with score field will appear here
-    </div>
+    <div className="empty-msg">No score data yet</div>
   )
 
   return (
     <div>
-      {/* High confidence callout */}
       {summary?.highConfidence?.total > 0 && (
         <div style={{ background: 'rgba(0,230,118,0.07)', border: '1px solid rgba(0,230,118,0.2)', borderRadius: 6, padding: '10px 12px', marginBottom: 14 }}>
           <div style={{ fontSize: 10, color: '#8899bb', marginBottom: 4 }}>Score ≥ 5 (high confidence)</div>
@@ -221,29 +233,12 @@ function ScoreSection({ scorePerformance, summary }) {
               {summary.highConfidence.winRate}%
             </span>
             <span style={{ fontSize: 11, color: '#8899bb' }}>
-              {summary.highConfidence.wins}W / {summary.highConfidence.total - summary.highConfidence.wins}L
-              &nbsp;({summary.highConfidence.total} trades)
+              {summary.highConfidence.wins}W / {summary.highConfidence.total - summary.highConfidence.wins}L ({summary.highConfidence.total} trades)
             </span>
           </div>
         </div>
       )}
 
-      {/* Bear signal impact */}
-      {summary?.bearSignalImpact?.total > 0 && (
-        <div style={{ background: 'rgba(255,23,68,0.06)', border: '1px solid rgba(255,23,68,0.15)', borderRadius: 6, padding: '10px 12px', marginBottom: 14 }}>
-          <div style={{ fontSize: 10, color: '#8899bb', marginBottom: 4 }}>
-            Trades with opposing signals
-          </div>
-          <div style={{ fontSize: 11, color: '#ff6b6b' }}>
-            Win rate: {summary.bearSignalImpact.winRate}% ({summary.bearSignalImpact.total} trades)
-          </div>
-          <div style={{ fontSize: 10, color: '#8899bb', marginTop: 4 }}>
-            {summary.bearSignalImpact.insight}
-          </div>
-        </div>
-      )}
-
-      {/* Score breakdown table */}
       <div className="card-label" style={{ marginBottom: 8 }}>Score breakdown</div>
       <table className="daily-table">
         <thead>
@@ -267,40 +262,74 @@ function ScoreSection({ scorePerformance, summary }) {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
 
-      {/* UP vs DOWN breakdown per score */}
-      <div className="card-label" style={{ marginBottom: 8, marginTop: 16 }}>UP vs DOWN per score</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {scorePerformance.map(g => (
-          <div key={g.score} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 11, color: '#7eb8ff', fontWeight: 600 }}>Score {g.score}/6</span>
-              <span style={{ fontSize: 10, color: '#8899bb' }}>{g.total} trades</span>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <span style={{ fontSize: 10, color: '#00e676' }}>
-                ▲ UP {g.upWinRate}%
-              </span>
-              <span style={{ fontSize: 10, color: '#ff4444' }}>
-                ▼ DOWN {g.downWinRate}%
-              </span>
-            </div>
-            <div style={{ fontSize: 9, color: '#556680', marginTop: 4 }}>
-              {g.recommendation}
-            </div>
-          </div>
-        ))}
+// ── Heatmap ────────────────────────────────────────────────────────
+function HeatmapSection({ heatmap }) {
+  if (!heatmap?.length) return <div className="empty-msg">No historical data for heatmap</div>
+
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  
+  return (
+    <div>
+      <div className="card-label" style={{ marginBottom: 12 }}>Win Rate Heatmap (Day vs Hour)</div>
+      <div className="heatmap-container" style={{ overflowX: 'auto', paddingBottom: 8 }}>
+        <table className="daily-table" style={{ minWidth: 400 }}>
+          <thead>
+            <tr>
+              <th style={{ width: 40 }}>Day</th>
+              {Array.from({ length: 24 }).map((_, h) => (
+                <th key={h} style={{ textAlign: 'center', padding: '4px 2px', fontSize: 8 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {days.map((day, dIdx) => (
+              <tr key={day}>
+                <td style={{ fontSize: 9, color: '#8899bb', fontWeight: 600 }}>{day}</td>
+                {Array.from({ length: 24 }).map((_, hour) => {
+                  const cell = heatmap.find(c => c.dayIndex === dIdx && c.hour === hour)
+                  const wr = cell?.winRate
+                  const opacity = cell?.total ? Math.min(1, 0.2 + (cell.total / 20)) : 0
+                  const color = wr == null ? 'transparent' 
+                    : wr >= 60 ? `rgba(0, 230, 118, ${opacity})`
+                    : wr >= 45 ? `rgba(255, 214, 0, ${opacity})`
+                    : `rgba(255, 23, 68, ${opacity})`
+                  
+                  return (
+                    <td 
+                      key={hour} 
+                      style={{ 
+                        background: color, 
+                        border: '1px solid rgba(255,255,255,0.02)',
+                        padding: 0,
+                        height: 18,
+                        textAlign: 'center',
+                        fontSize: 7,
+                        color: wr != null && opacity > 0.6 ? '#000' : '#8899bb'
+                      }}
+                      title={cell ? `${day} ${hour}:00 - WR: ${wr}% (${cell.total} trades)` : ''}
+                    >
+                      {cell ? Math.round(wr) : ''}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
 }
 
 // ── Main Sidebar ───────────────────────────────────────────────────
-const TABS = ['Hourly', 'Daily', 'Trades', 'Score'] // NEW — Score tab add
+const TABS = ['Hourly', 'Daily', 'Trades', 'Score', 'Heatmap']
 
 export default function AnalyticsSidebar({
-  hourly, daily, trades,
-  scorePerformance, summary, // NEW props
+  hourly, daily, trades, scorePerformance, summary, heatmap,
   selectedDate, changeDate, loading
 }) {
   const [activeTab, setActiveTab] = useState('Hourly')
@@ -318,6 +347,26 @@ export default function AnalyticsSidebar({
           </button>
         ))}
       </div>
+
+      {!loading && summary && (
+        <div style={{ padding: '16px 16px 0' }}>
+          <div className="stat-grid" style={{ marginBottom: 16 }}>
+            <div className="stat-box" style={{ background: 'var(--accent-dim)', borderColor: 'var(--accent)' }}>
+              <div className="stat-val" style={{ color: 'var(--bright)' }}>{summary.winRate}%</div>
+              <div className="stat-lbl">ALL TIME</div>
+            </div>
+            <div className="stat-box">
+              <div className="stat-val gold">{summary.today?.winRate}%</div>
+              <div className="stat-lbl">TODAY</div>
+            </div>
+            <div className="stat-box">
+              <div className="stat-val green" style={{ color: 'var(--teal)' }}>{summary.last24h?.winRate}%</div>
+              <div className="stat-lbl">24H</div>
+            </div>
+          </div>
+          <div className="section-divider" style={{ marginTop: 0 }} />
+        </div>
+      )}
 
       <div style={{ padding: '12px 16px 0', borderBottom: '1px solid var(--border)' }}>
         <div className="filter-row" style={{ marginBottom: 12 }}>
@@ -343,8 +392,8 @@ export default function AnalyticsSidebar({
             {activeTab === 'Hourly' && <HourlySection hourly={hourly} />}
             {activeTab === 'Daily' && <DailySection daily={daily} selectedDate={selectedDate} />}
             {activeTab === 'Trades' && <TradeListSection trades={trades} />}
-            {/* NEW */}
             {activeTab === 'Score' && <ScoreSection scorePerformance={scorePerformance} summary={summary} />}
+            {activeTab === 'Heatmap' && <HeatmapSection heatmap={heatmap} />}
           </>
         )}
       </div>

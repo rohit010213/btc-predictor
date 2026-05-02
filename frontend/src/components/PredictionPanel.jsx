@@ -82,9 +82,9 @@ export default function PredictionPanel({
               <div className="pred-dir skip">⏸ SKIP</div>
               <div className="pred-conf">
                 <div className="conf-num" style={{ color: 'var(--dim)' }}>
-                  {prediction.score ?? 0}/{(prediction.score ?? 0) + (prediction.bearScore ?? 0)}
+                  {prediction.weightedBull?.toFixed(1)} vs {prediction.weightedBear?.toFixed(1)}
                 </div>
-                <div>signals</div>
+                <div>weighted confluence</div>
               </div>
             </div>
             <div className="pred-analysis">{prediction.analysis}</div>
@@ -97,8 +97,10 @@ export default function PredictionPanel({
               <div className="signal-grid" style={{ marginTop: 8 }}>
                 {Object.values(prediction.signals).map((s, i) => (
                   <div key={i} className={`sig-chip ${s.bull === true ? 'bull' : s.bull === false ? 'bear' : 'neutral'}`}>
-                    <span>{s.name}</span>
-                    <span className="sig-detail">{s.detail}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                      <span>{s.name} {s.weight ? `(w=${s.weight})` : ''}</span>
+                      <span className="sig-detail">{s.detail}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -114,8 +116,13 @@ export default function PredictionPanel({
                 {prediction.direction === 'UP' ? '▲ UP' : '▼ DOWN'}
               </div>
               <div className="pred-conf">
-                <div className="conf-num">{prediction.confidence}%</div>
-                <div>confidence</div>
+                <div className="conf-num">
+                   {prediction.direction === 'UP' ? prediction.weightedBull?.toFixed(1) : prediction.weightedBear?.toFixed(1)} 
+                   <span style={{ fontSize: 10, opacity: 0.5, fontWeight: 400, marginLeft: 4 }}>
+                     / {prediction.direction === 'UP' ? prediction.weightedBear?.toFixed(1) : prediction.weightedBull?.toFixed(1)}
+                   </span>
+                </div>
+                <div>weighted confluence</div>
               </div>
             </div>
             <div className="conf-bar">
@@ -132,8 +139,10 @@ export default function PredictionPanel({
               <div className="signal-grid" style={{ marginTop: 8 }}>
                 {Object.values(prediction.signals).map((s, i) => (
                   <div key={i} className={`sig-chip ${s.bull === true ? 'bull' : s.bull === false ? 'bear' : 'neutral'}`}>
-                    <span>{s.name}</span>
-                    <span className="sig-detail">{s.detail}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                      <span>{s.name} {s.weight ? `(w=${s.weight})` : ''}</span>
+                      <span className="sig-detail">{s.detail}</span>
+                    </div>
                   </div>
                 ))}
               </div>

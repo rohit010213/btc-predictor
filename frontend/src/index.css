@@ -531,16 +531,16 @@ body {
 }
 
 .trade-row {
-  display: grid;
-  grid-template-columns: 50px 1fr 80px 50px;
-  gap: 6px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 8px 10px;
+  gap: 12px;
+  padding: 10px 14px;
   background: #ffffff03;
-  border-radius: 6px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   font-size: .68rem;
-  transition: all .15s;
+  transition: all .15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .trade-row:hover {

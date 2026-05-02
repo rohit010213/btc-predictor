@@ -47,11 +47,33 @@ export default function ResultsPanel({ trades, selectedDate, changeDate }) {
             const res = t.status === 'pending' ? 'PEND' : t.result === 'win' ? 'WIN ✓' : 'LOSS ✗'
             const rCls = t.status === 'pending' ? 'pending' : t.result
             return (
-              <div key={t.id || t._id} className="trade-row">
-                <span className={`tr-dir ${(t.direction || '').toLowerCase()}`}>{t.direction}</span>
-                <span className="tr-time">{time}</span>
-                <span className="tr-ptb">{ptbStr}</span>
-                <span className={`tr-res ${rCls}`}>{res}</span>
+              <div key={t.id || t._id} className="trade-row" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <span className={`tr-dir ${(t.direction || '').toLowerCase()}`} style={{ fontWeight: 600 }}>{t.direction}</span>
+                <span className="tr-time" style={{ fontSize: 9, color: 'var(--dim)', flex: 1 }}>{time}</span>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 60 }}>
+                  <span className="tr-ptb" style={{ fontWeight: 500 }}>{ptbStr}</span>
+                  {t.entryDiff != null && (
+                    <span style={{ fontSize: 8, color: t.entryDiff > 0 ? 'var(--up)' : 'var(--down)', opacity: 0.9 }}>
+                      {t.entryDiff > 0 ? '+' : ''}{t.entryDiff.toFixed(2)}%
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 60 }}>
+                  <span className={`tr-res ${rCls}`} style={{ fontWeight: 600 }}>{res}</span>
+                  {t.resolveSource && (
+                    <span style={{ fontSize: 7, color: 'var(--dim)', textTransform: 'uppercase' }}>
+                      {t.resolveSource.replace('_', ' ')}
+                    </span>
+                  )}
+                </div>
+
+                {t.score != null && (
+                  <div style={{ padding: '2px 4px', background: 'rgba(126, 184, 255, 0.1)', border: '1px solid rgba(126, 184, 255, 0.2)', borderRadius: 4, fontSize: 8, color: '#7eb8ff' }}>
+                    {t.score}⚡
+                  </div>
+                )}
               </div>
             )
           })
