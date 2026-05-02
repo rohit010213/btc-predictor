@@ -26,7 +26,7 @@ export function useBtcEngine() {
   const currentPriceRef = useRef(null)
   const priceAtStartRef = useRef(null)
   const predInProgress = useRef(false)
-  const lastCandleTs = useRef(getCurrentCandleTs())
+  const lastCandleTs = useRef(null)
 
   // ── Fetch BTC price ──────────────────────────────────────────────
   const fetchBtcPrice = useCallback(async () => {
