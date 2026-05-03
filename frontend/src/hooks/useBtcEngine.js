@@ -162,6 +162,7 @@ export function useBtcEngine() {
           } catch { }
         }
       }, 10000);
+    }
   }, [fetchBtcPrice, fetchPtb]);
 
   // Helper
