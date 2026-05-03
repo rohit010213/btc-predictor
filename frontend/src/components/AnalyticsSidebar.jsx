@@ -8,14 +8,13 @@ function WrPill({ wr }) {
 // ── Hourly Breakdown ───────────────────────────────────────────────
 // Replace the existing HourlySection function in AnalyticsSidebar.jsx with this:
 
-function HourlySection({ hourly, trades }) {
-  const [selectedHour, setSelectedHour] = useState('')
+function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
 
   if (!hourly?.length) return (
     <div className="empty-msg">No hourly data for this date</div>
   )
 
-  const activeHour = selectedHour !== '' ? Number(selectedHour) : (hourly?.[0]?.hour ?? 0)
+  const activeHour = selectedHour !== '' ? Number(selectedHour) : (Number(hourly?.[0]?.hour) || 0)
   const hourData = hourly?.find(h => Number(h.hour) === activeHour) || hourly?.[0]
 
   // Filter trades for selected hour (Strictly match IST hour)
@@ -442,6 +441,7 @@ export default function AnalyticsSidebar({
   selectedDate, changeDate, loading
 }) {
   const [activeTab, setActiveTab] = useState('Hourly')
+  const [selectedHour, setSelectedHour] = useState('')
 
   return (
     <aside className="sidebar">
@@ -498,7 +498,14 @@ export default function AnalyticsSidebar({
         )}
         {!loading && (
           <>
-            {activeTab === 'Hourly' && <HourlySection hourly={hourly} trades={trades} />}
+            {activeTab === 'Hourly' && (
+              <HourlySection 
+                hourly={hourly} 
+                trades={trades} 
+                selectedHour={selectedHour} 
+                setSelectedHour={setSelectedHour} 
+              />
+            )}
             {activeTab === 'Daily' && <DailySection daily={daily} selectedDate={selectedDate} />}
             {activeTab === 'Trades' && <TradeListSection trades={trades} />}
             {activeTab === 'Score' && <ScoreSection scorePerformance={scorePerformance} summary={summary} />}
