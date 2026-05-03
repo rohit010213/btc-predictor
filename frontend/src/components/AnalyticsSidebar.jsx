@@ -16,6 +16,20 @@ function HourlySection({ hourly }) {
   const activeHour = selectedHour !== '' ? parseInt(selectedHour) : (hourly?.[0]?.hour || 0)
   const hourData = hourly?.find(h => h.hour === activeHour) || hourly?.[0]
 
+  const hourTrades = (trades || []).filter(t => {
+    if (t.hour != null) return t.hour === activeHour
+    if (t.timestamp) {
+      try {
+        const hfmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false })
+        const h = parseInt(hfmt.format(new Date(t.timestamp))) % 24
+        return h === activeHour
+      } catch {
+        return new Date(t.timestamp).getHours() === activeHour
+      }
+    }
+    return false
+  }).sort((a, b) => (b.timestamp || b.id) - (a.timestamp || a.id))
+
   return (
     <div>
       <div className="card-label" style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
@@ -54,10 +68,10 @@ function HourlySection({ hourly }) {
           <div className="stat-lbl">Wins</div>
         </div>
         <div className="stat-box">
-          <div className="stat-val red">{hourData.losses}</div>
+          <div className="stat-val red">{hourData?.losses || 0}</div>
           <div className="stat-lbl">Losses</div>
         </div>
-        {hourData.avgScore != null && (
+        {hourData?.avgScore != null && (
           <div className="stat-box">
             <div className="stat-val" style={{ color: '#7eb8ff' }}>{hourData.avgScore}</div>
             <div className="stat-lbl">Avg Score</div>
@@ -66,15 +80,15 @@ function HourlySection({ hourly }) {
       </div>
 
       <div className="card-label" style={{ marginBottom: 10 }}>
-        Trades {(hourData?.hour ?? 0).toString().padStart(2, '0')}:00–{(((hourData?.hour ?? 0) + 1) % 24).toString().padStart(2, '0')}:00
+        Trades {(hourData?.hour ?? activeHour).toString().padStart(2, '0')}:00–{(((hourData?.hour ?? activeHour) + 1) % 24).toString().padStart(2, '0')}:00
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
-        {hourData?.trades?.map(t => {
-          const time = t.timestamp
-            ? new Date(t.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
-            : t.candleTs 
-              ? new Date(t.candleTs * 1000).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
-              : '—'
+        {!(hourTrades?.length) ? (
+          <div className="empty-msg">No trades found for this hour.</div>
+        ) : hourTrades.map(t => {
+          const d = new Date(t.timestamp || (t.candleTs * 1000))
+          const istTime = d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }) + ' IST'
+          const etTime = d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false }) + ' ET'
           
           const ptbStr = t.priceToBeat
             ? '$' + parseFloat(t.priceToBeat).toLocaleString('en-US', { maximumFractionDigits: 1 })
@@ -83,40 +97,51 @@ function HourlySection({ hourly }) {
             ? '$' + parseFloat(t.resolvePrice).toLocaleString('en-US', { maximumFractionDigits: 1 })
             : '—'
           
-          const res = t.status === 'pending' ? 'PENDING' : t.result === 'win' ? 'WIN ✓' : 'LOSS ✗'
-          const rCls = t.status === 'pending' ? 'pending' : t.result
-          const score = t.score != null ? `${t.score}/${(t.score || 0) + (t.bearScore || 0)}` : '—'
+          const outcome = t.status === 'pending' ? 'PENDING' : t.result?.toUpperCase() || '—'
+          const outcomeCls = t.status === 'pending' ? 'pending' : (t.result || 'neutral')
+          const scoreStr = t.score != null ? `${t.score}/${(t.score || 0) + (t.bearScore || 0)}` : '—'
           
           return (
-            <div key={t.id || t._id} className="trade-row" style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `3px solid var(--${(t.direction || '').toLowerCase()})` }}>
+            <div key={t.id || t._id} className="trade-card" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, position: 'relative', overflow: 'hidden' }}>
+              {/* Top Row: Prediction & Result */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--bright)' }}>{time}</span>
-                  <span className={`tr-dir ${(t.direction || '').toLowerCase()}`} style={{ fontSize: 10 }}>
-                    {t.direction === 'UP' ? '▲ UP' : '▼ DOWN'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className={`tr-dir ${(t.direction || '').toLowerCase()}`} style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.5px' }}>
+                    {t.direction === 'UP' ? '▲ BUY / UP' : '▼ SELL / DOWN'}
                   </span>
                 </div>
-                <span className={`tr-res ${rCls}`} style={{ fontSize: 10, fontWeight: 700 }}>{res}</span>
-              </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <div style={{ fontSize: 10, color: '#8899bb' }}>
-                  <div style={{ fontSize: 8, opacity: 0.7 }}>PRICE TO BEAT</div>
-                  <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{ptbStr}</span>
-                </div>
-                <div style={{ fontSize: 10, color: '#8899bb', textAlign: 'right' }}>
-                  <div style={{ fontSize: 8, opacity: 0.7 }}>RESOLVE PRICE</div>
-                  <span style={{ color: 'var(--bright)', fontWeight: 600 }}>{resPrice}</span>
+                <div className={`tr-res ${outcomeCls}`} style={{ fontSize: 10, fontWeight: 900, padding: '2px 8px', borderRadius: 4, background: 'rgba(0,0,0,0.2)' }}>
+                  {outcome}
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: 9, color: '#7eb8ff', fontWeight: 600 }}>
-                  SCORE: <span style={{ color: 'var(--bright)' }}>{score} ⚡</span>
+              {/* Times Row */}
+              <div style={{ display: 'flex', gap: 10, fontSize: 9, color: '#8899bb', fontWeight: 500 }}>
+                <span>{istTime}</span>
+                <span style={{ opacity: 0.5 }}>|</span>
+                <span>{etTime}</span>
+              </div>
+              
+              {/* Price Details */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '4px 0' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>PRICE TO BEAT</span>
+                  <span style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 700 }}>{ptbStr}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>RESULT PRICE</span>
+                  <span style={{ color: '#e8eeff', fontSize: 11, fontWeight: 700 }}>{resPrice}</span>
+                </div>
+              </div>
+
+              {/* Footer: Score & Confidence */}
+              <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px dashed rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 10, color: '#7eb8ff', fontWeight: 700 }}>
+                  SCORE: <span style={{ color: '#fff' }}>{scoreStr} ⚡</span>
                 </div>
                 {t.confidence && (
-                  <div style={{ fontSize: 9, color: '#8899bb' }}>
-                    {t.confidence}% CONF
+                  <div style={{ fontSize: 9, color: '#8899bb', fontWeight: 500 }}>
+                    CONF: {t.confidence}%
                   </div>
                 )}
               </div>
