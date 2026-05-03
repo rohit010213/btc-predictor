@@ -6,34 +6,28 @@ function WrPill({ wr }) {
 }
 
 // ── Hourly Breakdown ───────────────────────────────────────────────
-// Replace the existing HourlySection function in AnalyticsSidebar.jsx with this:
-
 function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
 
   if (!hourly?.length) return (
     <div className="empty-msg">No hourly data for this date</div>
   )
 
-  const activeHour = selectedHour !== '' ? Number(selectedHour) : (Number(hourly?.[0]?.hour) || 0)
+  const activeHour = selectedHour !== null ? Number(selectedHour) : Number(hourly?.[0]?.hour ?? 0)
   const hourData = hourly?.find(h => Number(h.hour) === activeHour) || hourly?.[0]
 
-  // Filter trades for selected hour (Strictly match IST hour)
+  // Filter trades for selected hour
   const hourTrades = (trades || []).filter(t => {
-    const tradeHour = t.hour !== undefined ? Number(t.hour) : null;
-    const filterHour = Number(activeHour);
-
-    // Primary match: Check stored hour field
-    if (tradeHour !== null && tradeHour === filterHour) return true;
-
-    // Fallback: Derive IST hour from timestamp
+    if (t.hour !== undefined && t.hour !== null) {
+      return Number(t.hour) === activeHour
+    }
     if (t.timestamp) {
-      try {
-        const hfmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false })
-        const derivedH = parseInt(hfmt.format(new Date(t.timestamp))) % 24
-        return derivedH === filterHour
-      } catch {
-        return false
-      }
+      const d = new Date(t.timestamp)
+      const hStr = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        hour12: false,
+      }).format(d)
+      return (parseInt(hStr) % 24) === activeHour
     }
     return false
   }).sort((a, b) => {
@@ -48,7 +42,7 @@ function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
       <div style={{ marginBottom: 12 }}>
         <div className="card-label" style={{ marginBottom: 6 }}>Hourly Breakdown</div>
         <select
-          value={activeHour}
+          value={activeHour.toString()}
           onChange={e => setSelectedHour(e.target.value)}
           style={{
             width: '100%',
@@ -62,17 +56,18 @@ function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
           }}
         >
           {hourly?.map(h => {
-            const nextH = (h.hour + 1) % 24
+            const hNum = Number(h.hour)
+            const nextH = (hNum + 1) % 24
             const todayStr = new Date().toISOString().slice(0, 10)
-            const dStart = new Date(`${todayStr}T${h.hour.toString().padStart(2, '0')}:00:00+05:30`)
+            const dStart = new Date(`${todayStr}T${hNum.toString().padStart(2, '0')}:00:00+05:30`)
             const dEnd = new Date(`${todayStr}T${nextH.toString().padStart(2, '0')}:00:00+05:30`)
             const utcS = dStart.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })
             const utcE = dEnd.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })
             const etS = dStart.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })
             const etE = dEnd.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })
             return (
-              <option key={h.hour} value={h.hour}>
-                {h.hour.toString().padStart(2, '0')}:00–{nextH.toString().padStart(2, '0')}:00 IST | {utcS}–{utcE} UTC | {etS}–{etE} ET ({h.total}t)
+              <option key={h.hour} value={hNum.toString()}>
+                {hNum.toString().padStart(2, '0')}:00–{nextH.toString().padStart(2, '0')}:00 IST | {utcS}–{utcE} UTC | {etS}–{etE} ET ({h.total}t)
               </option>
             )
           })}
@@ -110,33 +105,41 @@ function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
         {!hourTrades.length ? (
           <div className="empty-msg">No trades for this hour.</div>
         ) : hourTrades.map(t => {
-          // ── Time ──
+          // Time
           const d = new Date(t.timestamp || (t.candleTs * 1000))
-          const istTime = d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }) + ' IST'
-          const etTime = d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false }) + ' ET'
+          const istTime = d.toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute: '2-digit', hour12: false,
+          }) + ' IST'
+          const etTime = d.toLocaleTimeString('en-US', {
+            timeZone: 'America/New_York',
+            hour: '2-digit', minute: '2-digit', hour12: false,
+          }) + ' ET'
 
-          // ── Price ──
+          // Price to Beat
           const ptbStr = t.priceToBeat
             ? '$' + parseFloat(t.priceToBeat).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
             : '—'
+
+          // Resolve Price
           const resPrice = t.resolvePrice
             ? '$' + parseFloat(t.resolvePrice).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
             : '—'
 
-          // ── Prediction ──
+          // Prediction
           const dir = t.direction || '—'
           const isUp = dir === 'UP'
 
-          // ── Outcome ──
+          // Outcome
           const isPending = t.status === 'pending'
           const isWin = t.result === 'win'
           const isLoss = t.result === 'loss'
 
-          // ── Score ──
-          const relevantScore = isUp 
-            ? (t.weightedBull ?? t.score ?? 0) 
+          // Score
+          const scoreVal = isUp
+            ? (t.weightedBull ?? t.score ?? 0)
             : (t.weightedBear ?? t.bearScore ?? 0)
-          const scoreStr = relevantScore != null ? `${relevantScore.toFixed(1)}/6.0` : '—'
+          const scoreStr = scoreVal != null ? `${Number(scoreVal).toFixed(1)} / 6.0` : '—'
 
           return (
             <div
@@ -152,35 +155,40 @@ function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
               }}
             >
               {/* Row 1 — Time */}
-              <div style={{ fontSize: 9, color: '#8899bb', fontWeight: 600, letterSpacing: '0.3px' }}>
-                🕐 {istTime} | {etTime}
+              <div style={{
+                display: 'flex', justifyContent: 'space-between',
+                alignItems: 'center', fontSize: 9, color: '#8899bb', fontWeight: 600,
+              }}>
+                <span>🕐 {istTime} | {etTime}</span>
               </div>
 
-              {/* Row 2 — Prices */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* Row 2 — Price to Beat + Resolve Price */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>PTB</span>
                   <span style={{ fontSize: 11, color: 'var(--gold, #ffd600)', fontWeight: 700 }}>{ptbStr}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>RES</span>
-                  <span style={{ fontSize: 11, color: '#e8eeff', fontWeight: 700 }}>{resPrice}</span>
-                </div>
+                {t.resolvePrice && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>RES</span>
+                    <span style={{ fontSize: 11, color: '#e8eeff', fontWeight: 700 }}>{resPrice}</span>
+                  </div>
+                )}
               </div>
 
               {/* Row 3 — Prediction + Win/Loss */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 {/* Prediction */}
                 <span style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 800,
-                  color: isUp ? '#00e676' : '#ff1744',
+                  color: isUp ? '#00e676' : dir === 'DOWN' ? '#ff1744' : '#8899bb',
                   letterSpacing: '0.5px',
                 }}>
                   {isUp ? '▲ UP' : dir === 'DOWN' ? '▼ DOWN' : dir}
                 </span>
 
-                {/* Win / Loss / Pending */}
+                {/* Result */}
                 <span style={{
                   fontSize: 10,
                   fontWeight: 900,
@@ -192,23 +200,29 @@ function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
                   color: isPending ? '#ffd600'
                     : isWin ? '#00e676'
                       : '#ff1744',
-                  border: `1px solid ${isPending ? 'rgba(255,214,0,0.3)' : isWin ? 'rgba(0,230,118,0.3)' : 'rgba(255,23,68,0.3)'}`,
+                  border: `1px solid ${isPending ? 'rgba(255,214,0,0.3)'
+                      : isWin ? 'rgba(0,230,118,0.3)'
+                        : 'rgba(255,23,68,0.3)'
+                    }`,
                 }}>
                   {isPending ? 'PENDING' : isWin ? 'WIN ✓' : isLoss ? 'LOSS ✗' : '—'}
                 </span>
               </div>
 
-              {/* Row 4 — Score */}
+              {/* Row 4 — Score + Confidence */}
               <div style={{
                 paddingTop: 6,
                 borderTop: '1px dashed rgba(255,255,255,0.06)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 fontSize: 10,
-                color: '#7eb8ff',
-                fontWeight: 700,
               }}>
-                ⚡ Score: <span style={{ color: '#fff' }}>{scoreStr}</span>
+                <span style={{ color: '#7eb8ff', fontWeight: 700 }}>
+                  ⚡ Score: <span style={{ color: '#fff' }}>{scoreStr}</span>
+                </span>
                 {t.confidence != null && (
-                  <span style={{ float: 'right', fontSize: 9, color: '#8899bb', fontWeight: 500 }}>
+                  <span style={{ fontSize: 9, color: '#8899bb', fontWeight: 500 }}>
                     CONF: {t.confidence}%
                   </span>
                 )}
@@ -220,7 +234,6 @@ function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
     </div>
   )
 }
-
 
 // ── Daily History ──────────────────────────────────────────────────
 function DailySection({ daily, selectedDate }) {
@@ -441,7 +454,7 @@ export default function AnalyticsSidebar({
   selectedDate, changeDate, loading
 }) {
   const [activeTab, setActiveTab] = useState('Hourly')
-  const [selectedHour, setSelectedHour] = useState('')
+  const [selectedHour, setSelectedHour] = useState(null)
 
   return (
     <aside className="sidebar">
@@ -484,7 +497,10 @@ export default function AnalyticsSidebar({
             type="date"
             className="date-input"
             value={selectedDate}
-            onChange={e => changeDate(e.target.value)}
+            onChange={e => {
+              setSelectedHour(null)
+              changeDate(e.target.value)
+            }}
           />
         </div>
       </div>
@@ -499,11 +515,11 @@ export default function AnalyticsSidebar({
         {!loading && (
           <>
             {activeTab === 'Hourly' && (
-              <HourlySection 
-                hourly={hourly} 
-                trades={trades} 
-                selectedHour={selectedHour} 
-                setSelectedHour={setSelectedHour} 
+              <HourlySection
+                hourly={hourly}
+                trades={trades}
+                selectedHour={selectedHour}
+                setSelectedHour={setSelectedHour}
               />
             )}
             {activeTab === 'Daily' && <DailySection daily={daily} selectedDate={selectedDate} />}
