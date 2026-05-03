@@ -50,7 +50,7 @@ export default function ResultsPanel({ trades, selectedDate, changeDate }) {
               <div key={t.id || t._id} className="trade-row" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <span className={`tr-dir ${(t.direction || '').toLowerCase()}`} style={{ fontWeight: 600 }}>{t.direction}</span>
                 <span className="tr-time" style={{ fontSize: 9, color: 'var(--dim)', flex: 1 }}>{time}</span>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 60 }}>
                   <span className="tr-ptb" style={{ fontWeight: 500 }}>{ptbStr}</span>
                   {t.entryDiff != null && (
@@ -114,7 +114,7 @@ function HourlyMini({ trades }) {
           const cls = wr >= 60 ? 'high' : wr >= 40 ? 'mid' : 'low'
           return (
             <div key={h} className="hour-row">
-              <span className="hour-label" style={{ fontSize: 9, lineHeight: 1.2 }}>{h.toString().padStart(2, '0')}:00<br/>to {((h + 1) % 24).toString().padStart(2, '0')}:00</span>
+              <span className="hour-label" style={{ fontSize: 9, lineHeight: 1.2 }}>{h.toString().padStart(2, '0')}:00<br />to {((h + 1) % 24).toString().padStart(2, '0')}:00</span>
               <div className="hour-bar-wrap">
                 <div className={`hour-bar ${cls}`} style={{ width: `${wr}%` }} />
               </div>
