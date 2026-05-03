@@ -45,9 +45,9 @@ function HourlySection({ hourly }) {
       </div>
 
       <div className="stat-grid" style={{ marginBottom: 16 }}>
-        <div class="stat-box">
-          <div class="stat-val gold">{hourData?.winRate || 0}%</div>
-          <div class="stat-lbl">Win Rate</div>
+        <div className="stat-box">
+          <div className="stat-val"><WrPill wr={hourData?.winRate || 0} /></div>
+          <div className="stat-lbl">Win Rate</div>
         </div>
         <div className="stat-box">
           <div className="stat-val green">{hourData.wins}</div>
@@ -68,44 +68,58 @@ function HourlySection({ hourly }) {
       <div className="card-label" style={{ marginBottom: 10 }}>
         Trades {(hourData?.hour ?? 0).toString().padStart(2, '0')}:00–{(((hourData?.hour ?? 0) + 1) % 24).toString().padStart(2, '0')}:00
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 350, overflowY: 'auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
         {hourData?.trades?.map(t => {
+          const time = t.timestamp
+            ? new Date(t.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+            : t.candleTs 
+              ? new Date(t.candleTs * 1000).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+              : '—'
+          
           const ptbStr = t.priceToBeat
-            ? '$' + parseFloat(t.priceToBeat).toLocaleString('en-US', { maximumFractionDigits: 0 })
+            ? '$' + parseFloat(t.priceToBeat).toLocaleString('en-US', { maximumFractionDigits: 1 })
             : '—'
-          const resStr = t.resolvePrice
-            ? '$' + parseFloat(t.resolvePrice).toLocaleString('en-US', { maximumFractionDigits: 0 })
+          const resPrice = t.resolvePrice
+            ? '$' + parseFloat(t.resolvePrice).toLocaleString('en-US', { maximumFractionDigits: 1 })
             : '—'
-          const res = t.status === 'pending' ? 'PEND' : t.result === 'win' ? 'WIN ✓' : 'LOSS ✗'
+          
+          const res = t.status === 'pending' ? 'PENDING' : t.result === 'win' ? 'WIN ✓' : 'LOSS ✗'
           const rCls = t.status === 'pending' ? 'pending' : t.result
-          const diffStr = t.entryDiff != null ? (t.entryDiff > 0 ? '+' : '') + t.entryDiff.toFixed(2) + '%' : null
+          const score = t.score != null ? `${t.score}/${(t.score || 0) + (t.bearScore || 0)}` : '—'
           
           return (
-            <div key={t.id} className="trade-row" style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+            <div key={t.id || t._id} className="trade-row" style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `3px solid var(--${(t.direction || '').toLowerCase()})` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className={`tr-dir ${(t.direction || '').toLowerCase()}`} style={{ fontWeight: 600 }}>
-                  {t.direction}
-                </span>
-                <span className={`tr-res ${rCls}`} style={{ fontSize: 10 }}>{res}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--bright)' }}>{time}</span>
+                  <span className={`tr-dir ${(t.direction || '').toLowerCase()}`} style={{ fontSize: 10 }}>
+                    {t.direction === 'UP' ? '▲ UP' : '▼ DOWN'}
+                  </span>
+                </div>
+                <span className={`tr-res ${rCls}`} style={{ fontSize: 10, fontWeight: 700 }}>{res}</span>
               </div>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <div style={{ fontSize: 10, color: '#8899bb' }}>
-                  PTB: <span style={{ color: '#e8eeff' }}>{ptbStr}</span>
-                  {diffStr && <div style={{ fontSize: 8, color: t.entryDiff > 0 ? '#00e676' : '#ff1744' }}>{diffStr} from Entry</div>}
+                  <div style={{ fontSize: 8, opacity: 0.7 }}>PRICE TO BEAT</div>
+                  <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{ptbStr}</span>
                 </div>
                 <div style={{ fontSize: 10, color: '#8899bb', textAlign: 'right' }}>
-                  Res: <span style={{ color: '#e8eeff' }}>{resStr}</span>
-                  {t.resolveSource && <div style={{ fontSize: 8, opacity: 0.6 }}>via {t.resolveSource}</div>}
+                  <div style={{ fontSize: 8, opacity: 0.7 }}>RESOLVE PRICE</div>
+                  <span style={{ color: 'var(--bright)', fontWeight: 600 }}>{resPrice}</span>
                 </div>
               </div>
 
-              {t.score != null && (
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <span style={{ fontSize: 9, color: '#7eb8ff' }}>Score: {t.score}/{t.score + (t.bearScore ?? 0)}⚡</span>
-                   {t.confidence && <span style={{ fontSize: 9, color: '#8899bb' }}>{t.confidence}% conf</span>}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 9, color: '#7eb8ff', fontWeight: 600 }}>
+                  SCORE: <span style={{ color: 'var(--bright)' }}>{score} ⚡</span>
                 </div>
-              )}
+                {t.confidence && (
+                  <div style={{ fontSize: 9, color: '#8899bb' }}>
+                    {t.confidence}% CONF
+                  </div>
+                )}
+              </div>
             </div>
           )
         })}
