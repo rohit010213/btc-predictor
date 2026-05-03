@@ -5,8 +5,16 @@ function WrPill({ wr }) {
   return <span className={`wr-pill ${cls}`}>{wr}%</span>
 }
 
+
 // ── Hourly Breakdown ───────────────────────────────────────────────
 function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
+
+  console.log('HourlySection render:', {
+    selectedHour,
+    activeHour: selectedHour !== null ? Number(selectedHour) : Number(hourly?.[0]?.hour ?? 0),
+    tradesLength: trades?.length,
+    hourlyHours: hourly?.map(h => h.hour)
+  })
 
   if (!hourly?.length) return (
     <div className="empty-msg">No hourly data for this date</div>
@@ -201,8 +209,8 @@ function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
                     : isWin ? '#00e676'
                       : '#ff1744',
                   border: `1px solid ${isPending ? 'rgba(255,214,0,0.3)'
-                      : isWin ? 'rgba(0,230,118,0.3)'
-                        : 'rgba(255,23,68,0.3)'
+                    : isWin ? 'rgba(0,230,118,0.3)'
+                      : 'rgba(255,23,68,0.3)'
                     }`,
                 }}>
                   {isPending ? 'PENDING' : isWin ? 'WIN ✓' : isLoss ? 'LOSS ✗' : '—'}
