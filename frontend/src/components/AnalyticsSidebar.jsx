@@ -20,7 +20,9 @@ function HourlySection({ hourly, trades }) {
 
   // Filter trades for selected hour
   const hourTrades = (trades || []).filter(t => {
-    if (t.hour != null) return t.hour === activeHour
+    const tHour = t.hour !== undefined ? Number(t.hour) : null;
+    if (tHour !== null) return tHour === Number(activeHour);
+    
     if (t.timestamp) {
       try {
         const hfmt = new Intl.DateTimeFormat('en-US', {
@@ -29,9 +31,9 @@ function HourlySection({ hourly, trades }) {
           hour12: false,
         })
         const h = parseInt(hfmt.format(new Date(t.timestamp))) % 24
-        return h === activeHour
+        return h === Number(activeHour)
       } catch {
-        return new Date(t.timestamp).getHours() === activeHour
+        return new Date(t.timestamp).getHours() === Number(activeHour)
       }
     }
     return false
@@ -107,29 +109,31 @@ function HourlySection({ hourly, trades }) {
         ) : hourTrades.map(t => {
           // ── Time ──
           const d = new Date(t.timestamp || (t.candleTs * 1000))
-          const istTime = d.toLocaleTimeString('en-IN', {
-            timeZone: 'Asia/Kolkata',
-            hour: '2-digit', minute: '2-digit',
-            hour12: false,
-          }) + ' IST'
+          const istTime = d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }) + ' IST'
+          const etTime = d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false }) + ' ET'
 
-          // ── Price to Beat ──
+          // ── Price ──
           const ptbStr = t.priceToBeat
             ? '$' + parseFloat(t.priceToBeat).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+            : '—'
+          const resPrice = t.resolvePrice
+            ? '$' + parseFloat(t.resolvePrice).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
             : '—'
 
           // ── Prediction ──
           const dir = t.direction || '—'
           const isUp = dir === 'UP'
 
-          // ── Win / Loss ──
+          // ── Outcome ──
           const isPending = t.status === 'pending'
           const isWin = t.result === 'win'
           const isLoss = t.result === 'loss'
 
           // ── Score ──
-          const totalScore = (t.score ?? 0) + (t.bearScore ?? 0)
-          const scoreStr = t.score != null ? `${t.score}/${totalScore}` : '—'
+          const relevantScore = isUp 
+            ? (t.weightedBull ?? t.score ?? 0) 
+            : (t.weightedBear ?? t.bearScore ?? 0)
+          const scoreStr = relevantScore != null ? `${relevantScore.toFixed(1)}/6.0` : '—'
 
           return (
             <div
@@ -146,13 +150,19 @@ function HourlySection({ hourly, trades }) {
             >
               {/* Row 1 — Time */}
               <div style={{ fontSize: 9, color: '#8899bb', fontWeight: 600, letterSpacing: '0.3px' }}>
-                🕐 {istTime}
+                🕐 {istTime} | {etTime}
               </div>
 
-              {/* Row 2 — Price to Beat */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>PTB</span>
-                <span style={{ fontSize: 12, color: 'var(--gold, #ffd600)', fontWeight: 700 }}>{ptbStr}</span>
+              {/* Row 2 — Prices */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>PTB</span>
+                  <span style={{ fontSize: 11, color: 'var(--gold, #ffd600)', fontWeight: 700 }}>{ptbStr}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>RES</span>
+                  <span style={{ fontSize: 11, color: '#e8eeff', fontWeight: 700 }}>{resPrice}</span>
+                </div>
               </div>
 
               {/* Row 3 — Prediction + Win/Loss */}
