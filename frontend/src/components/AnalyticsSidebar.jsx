@@ -6,6 +6,8 @@ function WrPill({ wr }) {
 }
 
 // ── Hourly Breakdown ───────────────────────────────────────────────
+// Replace the existing HourlySection function in AnalyticsSidebar.jsx with this:
+
 function HourlySection({ hourly, trades }) {
   const [selectedHour, setSelectedHour] = useState('')
 
@@ -13,14 +15,19 @@ function HourlySection({ hourly, trades }) {
     <div className="empty-msg">No hourly data for this date</div>
   )
 
-  const activeHour = selectedHour !== '' ? parseInt(selectedHour) : (hourly?.[0]?.hour || 0)
+  const activeHour = selectedHour !== '' ? parseInt(selectedHour) : (hourly?.[0]?.hour ?? 0)
   const hourData = hourly?.find(h => h.hour === activeHour) || hourly?.[0]
 
+  // Filter trades for selected hour
   const hourTrades = (trades || []).filter(t => {
     if (t.hour != null) return t.hour === activeHour
     if (t.timestamp) {
       try {
-        const hfmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false })
+        const hfmt = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Kolkata',
+          hour: 'numeric',
+          hour12: false,
+        })
         const h = parseInt(hfmt.format(new Date(t.timestamp))) % 24
         return h === activeHour
       } catch {
@@ -28,47 +35,57 @@ function HourlySection({ hourly, trades }) {
       }
     }
     return false
-  }).sort((a, b) => (b.timestamp || b.id) - (a.timestamp || a.id))
+  }).sort((a, b) => (b.timestamp || b.candleTs * 1000) - (a.timestamp || a.candleTs * 1000))
 
   return (
     <div>
-      <div className="card-label" style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
-        <span>Hourly Breakdown</span>
+      {/* ── Dropdown ── */}
+      <div style={{ marginBottom: 12 }}>
+        <div className="card-label" style={{ marginBottom: 6 }}>Hourly Breakdown</div>
         <select
           value={activeHour}
           onChange={e => setSelectedHour(e.target.value)}
-          style={{ width: '100%', maxWidth: '100%', background: '#1c2333', color: '#e8eeff', border: '1px solid #3d4f6e', borderRadius: 4, padding: '4px 8px', fontSize: 10, outline: 'none' }}
+          style={{
+            width: '100%',
+            background: '#1c2333',
+            color: '#e8eeff',
+            border: '1px solid #3d4f6e',
+            borderRadius: 4,
+            padding: '4px 8px',
+            fontSize: 10,
+            outline: 'none',
+          }}
         >
           {hourly?.map(h => {
-            const istH = h.hour
-            const nextH = (istH + 1) % 24
+            const nextH = (h.hour + 1) % 24
             const todayStr = new Date().toISOString().slice(0, 10)
-            const dStart = new Date(`${todayStr}T${istH.toString().padStart(2, '0')}:00:00+05:30`)
+            const dStart = new Date(`${todayStr}T${h.hour.toString().padStart(2, '0')}:00:00+05:30`)
             const dEnd = new Date(`${todayStr}T${nextH.toString().padStart(2, '0')}:00:00+05:30`)
-            const utcStart = dStart.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })
-            const utcEnd = dEnd.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })
-            const etStart = dStart.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })
-            const etEnd = dEnd.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })
+            const utcS = dStart.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })
+            const utcE = dEnd.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })
+            const etS = dStart.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })
+            const etE = dEnd.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })
             return (
               <option key={h.hour} value={h.hour}>
-                {istH.toString().padStart(2, '0')}:00-{nextH.toString().padStart(2, '0')}:00 IST | {utcStart}-{utcEnd} UTC | {etStart}-{etEnd} ET ({h.total}t)
+                {h.hour.toString().padStart(2, '0')}:00–{nextH.toString().padStart(2, '0')}:00 IST | {utcS}–{utcE} UTC | {etS}–{etE} ET ({h.total}t)
               </option>
             )
           })}
         </select>
       </div>
 
-      <div className="stat-grid" style={{ marginBottom: 16 }}>
+      {/* ── Hour Stats ── */}
+      <div className="stat-grid" style={{ marginBottom: 14 }}>
         <div className="stat-box">
           <div className="stat-val"><WrPill wr={hourData?.winRate || 0} /></div>
           <div className="stat-lbl">Win Rate</div>
         </div>
         <div className="stat-box">
-          <div className="stat-val green">{hourData.wins}</div>
+          <div className="stat-val green">{hourData?.wins ?? 0}</div>
           <div className="stat-lbl">Wins</div>
         </div>
         <div className="stat-box">
-          <div className="stat-val red">{hourData?.losses || 0}</div>
+          <div className="stat-val red">{hourData?.losses ?? 0}</div>
           <div className="stat-lbl">Losses</div>
         </div>
         {hourData?.avgScore != null && (
@@ -79,70 +96,108 @@ function HourlySection({ hourly, trades }) {
         )}
       </div>
 
-      <div className="card-label" style={{ marginBottom: 10 }}>
-        Trades {(hourData?.hour ?? activeHour).toString().padStart(2, '0')}:00–{(((hourData?.hour ?? activeHour) + 1) % 24).toString().padStart(2, '0')}:00
+      {/* ── Trade Cards ── */}
+      <div className="card-label" style={{ marginBottom: 8 }}>
+        Trades ({hourTrades.length})
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
-        {!(hourTrades?.length) ? (
-          <div className="empty-msg">No trades found for this hour.</div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 420, overflowY: 'auto' }}>
+        {!hourTrades.length ? (
+          <div className="empty-msg">No trades for this hour.</div>
         ) : hourTrades.map(t => {
+          // ── Time ──
           const d = new Date(t.timestamp || (t.candleTs * 1000))
-          const istTime = d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }) + ' IST'
-          const etTime = d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false }) + ' ET'
-          
+          const istTime = d.toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute: '2-digit',
+            hour12: false,
+          }) + ' IST'
+
+          // ── Price to Beat ──
           const ptbStr = t.priceToBeat
-            ? '$' + parseFloat(t.priceToBeat).toLocaleString('en-US', { maximumFractionDigits: 1 })
+            ? '$' + parseFloat(t.priceToBeat).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
             : '—'
-          const resPrice = t.resolvePrice
-            ? '$' + parseFloat(t.resolvePrice).toLocaleString('en-US', { maximumFractionDigits: 1 })
-            : '—'
-          
-          const outcome = t.status === 'pending' ? 'PENDING' : t.result?.toUpperCase() || '—'
-          const outcomeCls = t.status === 'pending' ? 'pending' : (t.result || 'neutral')
-          const scoreStr = t.score != null ? `${t.score}/${(t.score || 0) + (t.bearScore || 0)}` : '—'
-          
+
+          // ── Prediction ──
+          const dir = t.direction || '—'
+          const isUp = dir === 'UP'
+
+          // ── Win / Loss ──
+          const isPending = t.status === 'pending'
+          const isWin = t.result === 'win'
+          const isLoss = t.result === 'loss'
+
+          // ── Score ──
+          const totalScore = (t.score ?? 0) + (t.bearScore ?? 0)
+          const scoreStr = t.score != null ? `${t.score}/${totalScore}` : '—'
+
           return (
-            <div key={t.id || t._id} className="trade-card" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, position: 'relative', overflow: 'hidden' }}>
-              {/* Top Row: Prediction & Result */}
+            <div
+              key={t.id || t._id}
+              style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 8,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 7,
+              }}
+            >
+              {/* Row 1 — Time */}
+              <div style={{ fontSize: 9, color: '#8899bb', fontWeight: 600, letterSpacing: '0.3px' }}>
+                🕐 {istTime}
+              </div>
+
+              {/* Row 2 — Price to Beat */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>PTB</span>
+                <span style={{ fontSize: 12, color: 'var(--gold, #ffd600)', fontWeight: 700 }}>{ptbStr}</span>
+              </div>
+
+              {/* Row 3 — Prediction + Win/Loss */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className={`tr-dir ${(t.direction || '').toLowerCase()}`} style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.5px' }}>
-                    {t.direction === 'UP' ? '▲ BUY / UP' : '▼ SELL / DOWN'}
-                  </span>
-                </div>
-                <div className={`tr-res ${outcomeCls}`} style={{ fontSize: 10, fontWeight: 900, padding: '2px 8px', borderRadius: 4, background: 'rgba(0,0,0,0.2)' }}>
-                  {outcome}
-                </div>
+                {/* Prediction */}
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: isUp ? '#00e676' : '#ff1744',
+                  letterSpacing: '0.5px',
+                }}>
+                  {isUp ? '▲ UP' : dir === 'DOWN' ? '▼ DOWN' : dir}
+                </span>
+
+                {/* Win / Loss / Pending */}
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 900,
+                  padding: '2px 10px',
+                  borderRadius: 4,
+                  background: isPending ? 'rgba(255,214,0,0.1)'
+                    : isWin ? 'rgba(0,230,118,0.12)'
+                      : 'rgba(255,23,68,0.12)',
+                  color: isPending ? '#ffd600'
+                    : isWin ? '#00e676'
+                      : '#ff1744',
+                  border: `1px solid ${isPending ? 'rgba(255,214,0,0.3)' : isWin ? 'rgba(0,230,118,0.3)' : 'rgba(255,23,68,0.3)'}`,
+                }}>
+                  {isPending ? 'PENDING' : isWin ? 'WIN ✓' : isLoss ? 'LOSS ✗' : '—'}
+                </span>
               </div>
 
-              {/* Times Row */}
-              <div style={{ display: 'flex', gap: 10, fontSize: 9, color: '#8899bb', fontWeight: 500 }}>
-                <span>{istTime}</span>
-                <span style={{ opacity: 0.5 }}>|</span>
-                <span>{etTime}</span>
-              </div>
-              
-              {/* Price Details */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '4px 0' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>PRICE TO BEAT</span>
-                  <span style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 700 }}>{ptbStr}</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <span style={{ fontSize: 8, color: '#667799', fontWeight: 700, letterSpacing: '0.3px' }}>RESULT PRICE</span>
-                  <span style={{ color: '#e8eeff', fontSize: 11, fontWeight: 700 }}>{resPrice}</span>
-                </div>
-              </div>
-
-              {/* Footer: Score & Confidence */}
-              <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px dashed rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: 10, color: '#7eb8ff', fontWeight: 700 }}>
-                  SCORE: <span style={{ color: '#fff' }}>{scoreStr} ⚡</span>
-                </div>
-                {t.confidence && (
-                  <div style={{ fontSize: 9, color: '#8899bb', fontWeight: 500 }}>
+              {/* Row 4 — Score */}
+              <div style={{
+                paddingTop: 6,
+                borderTop: '1px dashed rgba(255,255,255,0.06)',
+                fontSize: 10,
+                color: '#7eb8ff',
+                fontWeight: 700,
+              }}>
+                ⚡ Score: <span style={{ color: '#fff' }}>{scoreStr}</span>
+                {t.confidence != null && (
+                  <span style={{ float: 'right', fontSize: 9, color: '#8899bb', fontWeight: 500 }}>
                     CONF: {t.confidence}%
-                  </div>
+                  </span>
                 )}
               </div>
             </div>
@@ -152,6 +207,7 @@ function HourlySection({ hourly, trades }) {
     </div>
   )
 }
+
 
 // ── Daily History ──────────────────────────────────────────────────
 function DailySection({ daily, selectedDate }) {
@@ -310,7 +366,7 @@ function HeatmapSection({ heatmap }) {
   if (!heatmap?.length) return <div className="empty-msg">No historical data for heatmap</div>
 
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  
+
   return (
     <div>
       <div className="card-label" style={{ marginBottom: 12 }}>Win Rate Heatmap (Day vs Hour)</div>
@@ -332,16 +388,16 @@ function HeatmapSection({ heatmap }) {
                   const cell = heatmap?.find(c => c.dayIndex === dIdx && c.hour === hour)
                   const wr = cell?.winRate
                   const opacity = cell?.total ? Math.min(1, 0.2 + (cell.total / 20)) : 0
-                  const color = wr == null ? 'transparent' 
+                  const color = wr == null ? 'transparent'
                     : wr >= 60 ? `rgba(0, 230, 118, ${opacity})`
-                    : wr >= 45 ? `rgba(255, 214, 0, ${opacity})`
-                    : `rgba(255, 23, 68, ${opacity})`
-                  
+                      : wr >= 45 ? `rgba(255, 214, 0, ${opacity})`
+                        : `rgba(255, 23, 68, ${opacity})`
+
                   return (
-                    <td 
-                      key={hour} 
-                      style={{ 
-                        background: color, 
+                    <td
+                      key={hour}
+                      style={{
+                        background: color,
                         border: '1px solid rgba(255,255,255,0.02)',
                         padding: 0,
                         height: 18,

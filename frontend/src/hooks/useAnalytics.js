@@ -15,9 +15,7 @@ export function useAnalytics() {
   const [heatmap, setHeatmap] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const [selectedDate, setSelectedDate] = useState(() => {
-    return localStorage.getItem('btc_dashboard_date') || getISTDateString()
-  })
+  const [selectedDate, setSelectedDate] = useState(getISTDateString())
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -88,7 +86,6 @@ export function useAnalytics() {
       if (currentToday !== lastToday) {
         lastToday = currentToday
         setSelectedDate(currentToday)
-        localStorage.setItem('btc_dashboard_date', currentToday)
         refresh(currentToday)
       } else {
         refresh(selectedDate)
@@ -99,7 +96,6 @@ export function useAnalytics() {
 
   const changeDate = (date) => {
     setSelectedDate(date)
-    localStorage.setItem('btc_dashboard_date', date)
     refresh(date)
   }
 
