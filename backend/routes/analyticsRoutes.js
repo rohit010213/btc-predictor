@@ -39,18 +39,56 @@ router.get('/summary', async (req, res) => {
       },
     ]);
 
-    // Score breakdown — separate aggregation (group by score)
+    // Score breakdown — bucket weighted scores into levels
     const scoreAgg = await Trade.aggregate([
-      { $match: { status: 'resolved', score: { $ne: null } } },
+      { $match: { status: 'resolved' } },
+      {
+        $project: {
+          result: 1,
+          finalScore: {
+            $cond: [
+              { $eq: ["$direction", "UP"] },
+              { $ifNull: ["$weightedBull", "$score"] },
+              { $ifNull: ["$weightedBear", "$bearScore"] }
+            ]
+          }
+        }
+      },
+      {
+        $project: {
+          result: 1,
+          bucket: {
+            $switch: {
+              branches: [
+                { case: { $lt: ["$finalScore", 4.5] }, then: "Weak (<4.5)" },
+                { case: { $lt: ["$finalScore", 6.5] }, then: "Moderate (4.5-6.5)" },
+                { case: { $lt: ["$finalScore", 8.5] }, then: "Strong (6.5-8.5)" }
+              ],
+              default: "Legendary (>8.5)"
+            }
+          },
+          sortOrder: {
+            $switch: {
+              branches: [
+                { case: { $lt: ["$finalScore", 4.5] }, then: 1 },
+                { case: { $lt: ["$finalScore", 6.5] }, then: 2 },
+                { case: { $lt: ["$finalScore", 8.5] }, then: 3 }
+              ],
+              default: 4
+            }
+          }
+        }
+      },
       {
         $group: {
-          _id: '$score',
+          _id: "$bucket",
+          sortOrder: { $first: "$sortOrder" },
           total: { $sum: 1 },
           wins: { $sum: { $cond: [{ $eq: ['$result', 'win'] }, 1, 0] } },
           losses: { $sum: { $cond: [{ $eq: ['$result', 'loss'] }, 1, 0] } },
         },
       },
-      { $sort: { _id: 1 } },
+      { $sort: { sortOrder: 1 } },
     ]);
 
     const data = agg || {

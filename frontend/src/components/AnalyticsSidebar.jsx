@@ -370,11 +370,11 @@ function ScoreSection({ scorePerformance, summary }) {
         </div>
       )}
 
-      <div className="card-label" style={{ marginBottom: 8 }}>Score breakdown</div>
+      <div className="card-label" style={{ marginBottom: 8 }}>Confluence Breakdown</div>
       <table className="daily-table">
         <thead>
           <tr>
-            <th>Score</th>
+            <th>Level</th>
             <th>Total</th>
             <th>W</th>
             <th>L</th>
@@ -384,7 +384,7 @@ function ScoreSection({ scorePerformance, summary }) {
         <tbody>
           {scorePerformance?.map(g => (
             <tr key={g.score}>
-              <td style={{ color: '#7eb8ff', fontWeight: 600 }}>{g.score}/6</td>
+              <td style={{ color: '#7eb8ff', fontWeight: 600, fontSize: 9 }}>{g.score}</td>
               <td style={{ color: '#e8eeff' }}>{g.total}</td>
               <td style={{ color: '#00e676' }}>{g.wins}</td>
               <td style={{ color: '#ff1744' }}>{g.losses}</td>
