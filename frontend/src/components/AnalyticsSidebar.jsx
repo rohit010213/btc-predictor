@@ -6,7 +6,7 @@ function WrPill({ wr }) {
 }
 
 // ── Hourly Breakdown ───────────────────────────────────────────────
-function HourlySection({ hourly }) {
+function HourlySection({ hourly, trades }) {
   const [selectedHour, setSelectedHour] = useState('')
 
   if (!hourly?.length) return (
@@ -428,7 +428,7 @@ export default function AnalyticsSidebar({
         )}
         {!loading && (
           <>
-            {activeTab === 'Hourly' && <HourlySection hourly={hourly} />}
+            {activeTab === 'Hourly' && <HourlySection hourly={hourly} trades={trades} />}
             {activeTab === 'Daily' && <DailySection daily={daily} selectedDate={selectedDate} />}
             {activeTab === 'Trades' && <TradeListSection trades={trades} />}
             {activeTab === 'Score' && <ScoreSection scorePerformance={scorePerformance} summary={summary} />}
