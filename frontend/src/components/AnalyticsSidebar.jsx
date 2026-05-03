@@ -13,8 +13,8 @@ function HourlySection({ hourly }) {
     <div className="empty-msg">No hourly data for this date</div>
   )
 
-  const activeHour = selectedHour !== '' ? parseInt(selectedHour) : hourly[0].hour
-  const hourData = hourly.find(h => h.hour === activeHour) || hourly[0]
+  const activeHour = selectedHour !== '' ? parseInt(selectedHour) : (hourly?.[0]?.hour || 0)
+  const hourData = hourly?.find(h => h.hour === activeHour) || hourly?.[0]
 
   return (
     <div>
@@ -25,7 +25,7 @@ function HourlySection({ hourly }) {
           onChange={e => setSelectedHour(e.target.value)}
           style={{ width: '100%', maxWidth: '100%', background: '#1c2333', color: '#e8eeff', border: '1px solid #3d4f6e', borderRadius: 4, padding: '4px 8px', fontSize: 10, outline: 'none' }}
         >
-          {hourly.map(h => {
+          {hourly?.map(h => {
             const istH = h.hour
             const nextH = (istH + 1) % 24
             const todayStr = new Date().toISOString().slice(0, 10)
@@ -45,9 +45,9 @@ function HourlySection({ hourly }) {
       </div>
 
       <div className="stat-grid" style={{ marginBottom: 16 }}>
-        <div className="stat-box">
-          <div className="stat-val gold">{hourData.winRate}%</div>
-          <div className="stat-lbl">Win Rate</div>
+        <div class="stat-box">
+          <div class="stat-val gold">{hourData?.winRate || 0}%</div>
+          <div class="stat-lbl">Win Rate</div>
         </div>
         <div className="stat-box">
           <div className="stat-val green">{hourData.wins}</div>
@@ -66,10 +66,10 @@ function HourlySection({ hourly }) {
       </div>
 
       <div className="card-label" style={{ marginBottom: 10 }}>
-        Trades {hourData.hour.toString().padStart(2, '0')}:00–{((hourData.hour + 1) % 24).toString().padStart(2, '0')}:00
+        Trades {(hourData?.hour ?? 0).toString().padStart(2, '0')}:00–{(((hourData?.hour ?? 0) + 1) % 24).toString().padStart(2, '0')}:00
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 350, overflowY: 'auto' }}>
-        {hourData.trades.map(t => {
+        {hourData?.trades?.map(t => {
           const ptbStr = t.priceToBeat
             ? '$' + parseFloat(t.priceToBeat).toLocaleString('en-US', { maximumFractionDigits: 0 })
             : '—'
@@ -116,7 +116,7 @@ function HourlySection({ hourly }) {
 
 // ── Daily History ──────────────────────────────────────────────────
 function DailySection({ daily, selectedDate }) {
-  const dateData = daily.find(d => d.date === selectedDate)
+  const dateData = daily?.find(d => d.date === selectedDate)
   if (!dateData) return <div className="empty-msg">No daily data for {selectedDate}</div>
 
   return (
@@ -156,7 +156,7 @@ function DailySection({ daily, selectedDate }) {
           </tr>
         </thead>
         <tbody>
-          {daily.map(d => (
+          {daily?.map(d => (
             <tr
               key={d.date}
               style={{ background: d.date === selectedDate ? 'rgba(255,255,255,0.05)' : undefined }}
@@ -181,9 +181,9 @@ function TradeListSection({ trades }) {
 
   return (
     <div>
-      <div className="card-label" style={{ marginBottom: 10 }}>Trades ({trades.length})</div>
+      <div className="card-label" style={{ marginBottom: 10 }}>Trades ({trades?.length || 0})</div>
       <div className="trade-list">
-        {trades.slice(0, 100).map(t => {
+        {trades?.slice(0, 100).map(t => {
           const time = t.timestamp
             ? `${new Date(t.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false })} IST`
             : '—'
@@ -251,7 +251,7 @@ function ScoreSection({ scorePerformance, summary }) {
           </tr>
         </thead>
         <tbody>
-          {scorePerformance.map(g => (
+          {scorePerformance?.map(g => (
             <tr key={g.score}>
               <td style={{ color: '#7eb8ff', fontWeight: 600 }}>{g.score}/6</td>
               <td style={{ color: '#e8eeff' }}>{g.total}</td>
@@ -290,7 +290,7 @@ function HeatmapSection({ heatmap }) {
               <tr key={day}>
                 <td style={{ fontSize: 9, color: '#8899bb', fontWeight: 600 }}>{day}</td>
                 {Array.from({ length: 24 }).map((_, hour) => {
-                  const cell = heatmap.find(c => c.dayIndex === dIdx && c.hour === hour)
+                  const cell = heatmap?.find(c => c.dayIndex === dIdx && c.hour === hour)
                   const wr = cell?.winRate
                   const opacity = cell?.total ? Math.min(1, 0.2 + (cell.total / 20)) : 0
                   const color = wr == null ? 'transparent' 

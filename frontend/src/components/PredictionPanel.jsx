@@ -93,9 +93,9 @@ export default function PredictionPanel({
             </div>
 
             {/* Signal breakdown on skip */}
-            {prediction.signals && (
+            {prediction?.signals && (
               <div className="signal-grid" style={{ marginTop: 8 }}>
-                {Object.values(prediction.signals).map((s, i) => (
+                {Object.values(prediction.signals || {}).map((s, i) => (
                   <div key={i} className={`sig-chip ${s.bull === true ? 'bull' : s.bull === false ? 'bear' : 'neutral'}`}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                       <span>{s.name} {s.weight ? `(w=${s.weight})` : ''}</span>
@@ -135,9 +135,9 @@ export default function PredictionPanel({
             <div className="pred-risk">⚠ {prediction.risk}</div>
 
             {/* Signal breakdown on trade */}
-            {prediction.signals && (
+            {prediction?.signals && (
               <div className="signal-grid" style={{ marginTop: 8 }}>
-                {Object.values(prediction.signals).map((s, i) => (
+                {Object.values(prediction.signals || {}).map((s, i) => (
                   <div key={i} className={`sig-chip ${s.bull === true ? 'bull' : s.bull === false ? 'bear' : 'neutral'}`}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                       <span>{s.name} {s.weight ? `(w=${s.weight})` : ''}</span>

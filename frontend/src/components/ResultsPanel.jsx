@@ -2,7 +2,7 @@
 import { useState } from 'react'
 
 export default function ResultsPanel({ trades, selectedDate, changeDate }) {
-  const resolved = trades.filter(t => t.status === 'resolved')
+  const resolved = (trades || []).filter(t => t.status === 'resolved')
   const wins = resolved.filter(t => t.result === 'win').length
   const losses = resolved.filter(t => t.result === 'loss').length
   const wr = resolved.length ? ((wins / resolved.length) * 100).toFixed(0) : 0
@@ -35,7 +35,7 @@ export default function ResultsPanel({ trades, selectedDate, changeDate }) {
       {/* Trade list */}
       <div className="card-label">Recent Trades</div>
       <div className="trade-list" style={{ maxHeight: 280 }}>
-        {!trades.length
+        {!(trades?.length)
           ? <div className="empty-msg">No trades for this date</div>
           : trades.slice(0, 50).map(t => {
             const time = t.timestamp
@@ -81,14 +81,14 @@ export default function ResultsPanel({ trades, selectedDate, changeDate }) {
       </div>
 
       {/* Hourly breakdown inside results */}
-      {trades.length > 0 && <HourlyMini trades={resolved} />}
+      {(trades?.length || 0) > 0 && <HourlyMini trades={resolved} />}
     </div>
   )
 }
 
 function HourlyMini({ trades }) {
   const hourMap = {}
-  trades.forEach(t => {
+  trades?.forEach(t => {
     let h = t.hour
     if (h == null && t.timestamp) {
       const hfmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false })
