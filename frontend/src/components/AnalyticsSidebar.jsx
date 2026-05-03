@@ -15,29 +15,33 @@ function HourlySection({ hourly, trades }) {
     <div className="empty-msg">No hourly data for this date</div>
   )
 
-  const activeHour = selectedHour !== '' ? parseInt(selectedHour) : (hourly?.[0]?.hour ?? 0)
-  const hourData = hourly?.find(h => h.hour === activeHour) || hourly?.[0]
+  const activeHour = selectedHour !== '' ? Number(selectedHour) : (hourly?.[0]?.hour ?? 0)
+  const hourData = hourly?.find(h => Number(h.hour) === activeHour) || hourly?.[0]
 
-  // Filter trades for selected hour
+  // Filter trades for selected hour (Strictly match IST hour)
   const hourTrades = (trades || []).filter(t => {
-    const tHour = t.hour !== undefined ? Number(t.hour) : null;
-    if (tHour !== null) return tHour === Number(activeHour);
-    
+    const tradeHour = t.hour !== undefined ? Number(t.hour) : null;
+    const filterHour = Number(activeHour);
+
+    // Primary match: Check stored hour field
+    if (tradeHour !== null && tradeHour === filterHour) return true;
+
+    // Fallback: Derive IST hour from timestamp
     if (t.timestamp) {
       try {
-        const hfmt = new Intl.DateTimeFormat('en-US', {
-          timeZone: 'Asia/Kolkata',
-          hour: 'numeric',
-          hour12: false,
-        })
-        const h = parseInt(hfmt.format(new Date(t.timestamp))) % 24
-        return h === Number(activeHour)
+        const hfmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false })
+        const derivedH = parseInt(hfmt.format(new Date(t.timestamp))) % 24
+        return derivedH === filterHour
       } catch {
-        return new Date(t.timestamp).getHours() === Number(activeHour)
+        return false
       }
     }
     return false
-  }).sort((a, b) => (b.timestamp || b.candleTs * 1000) - (a.timestamp || a.candleTs * 1000))
+  }).sort((a, b) => {
+    const timeA = a.timestamp ? new Date(a.timestamp).getTime() : (a.candleTs * 1000 || 0)
+    const timeB = b.timestamp ? new Date(b.timestamp).getTime() : (b.candleTs * 1000 || 0)
+    return timeB - timeA
+  })
 
   return (
     <div>
