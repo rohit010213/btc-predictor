@@ -78,19 +78,8 @@ export function useBtcEngine() {
     return { ptb: est, sourceRaw: 'estimate', sourceIcon: '❌ Backend unavailable — estimate' }
   }, [])
 
-  // ── Save trade to DB ──────────────────────────────────────────────
-  const saveTradeToDb = useCallback(async (tradeData) => {
-    try {
-      const r = await fetch(`${BACKEND}/api/trades`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tradeData),
-      })
-      return await r.json()
-    } catch (e) {
-      console.warn('Failed to save trade:', e)
-    }
-  }, [])
+  // ── Save trade logic removed — now handled by Backend automatically ──
+
 
   // ── Run prediction ────────────────────────────────────────────────
   const runPrediction = useCallback(async (ts, ptb, sourceRaw, sourceIcon) => {
@@ -155,26 +144,9 @@ export function useBtcEngine() {
     setPredStatus('done');
     predInProgress.current = false;
 
-    if (pred.skip) return; // Don't save skipped trades to DB
+    if (pred.skip) return; 
 
-    const tradePayload = {
-      id: ts,
-      candleTs: ts, // Explicitly send candleTs
-      timestamp: new Date(ts * 1000).toISOString(),
-      direction: pred.direction,
-      confidence: pred.confidence,
-      entryPrice: cp,
-      priceToBeat: ptb,
-      priceToBeatSource: sourceIcon,
-      analysis: pred.analysis,
-      risk: pred.risk,
-      score: pred.score,
-      bearScore: pred.bearScore,
-      weightedBull: pred.weightedBull, // Send weighted scores
-      weightedBear: pred.weightedBear,
-      status: 'pending',
-    };
-    await saveTradeToDb(tradePayload);
+    console.log(`[Engine] Prediction generated for ${ts}. Waiting for backend to persist.`);
 
     // After 10s, check if we can get a better PTB from Polymarket exact
     if (sourceRaw !== 'polymarket_exact') {

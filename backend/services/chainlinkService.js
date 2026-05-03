@@ -1,5 +1,6 @@
 import { WebSocket } from 'ws';
 import { Candle } from '../models/Candle.js';
+import { runAutoPrediction } from './PredictorService.js';
 
 let chainlinkBtcPrice = null;
 let chainlinkPriceTs = null;
@@ -119,6 +120,9 @@ async function rotateCandleIfNeeded(newPrice) {
     };
 
     console.log(`🕯 New candle started: ${expectedTs} @ $${newPrice}`);
+
+    // ── Trigger Background Prediction ────────────────────────
+    runAutoPrediction(expectedTs, newPrice);
 
   } else {
     // ── Update current candle ────────────────────────────────
