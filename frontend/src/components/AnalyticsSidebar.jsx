@@ -147,7 +147,9 @@ function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
           const scoreVal = isUp
             ? (t.weightedBull ?? t.score ?? 0)
             : (t.weightedBear ?? t.bearScore ?? 0)
-          const scoreStr = scoreVal != null ? `${Number(scoreVal).toFixed(1)} / 6.0` : '—'
+          const scoreNum = Number(scoreVal)
+          const scoreStr = scoreVal != null ? `${scoreNum.toFixed(1)} / 10.5` : '—'
+          const isHighScore = scoreNum >= 5.0
 
           return (
             <div
@@ -227,7 +229,7 @@ function HourlySection({ hourly, trades, selectedHour, setSelectedHour }) {
                 fontSize: 10,
               }}>
                 <span style={{ color: '#7eb8ff', fontWeight: 700 }}>
-                  ⚡ Score: <span style={{ color: '#fff' }}>{scoreStr}</span>
+                  ⚡ Score: <span style={{ color: isHighScore ? '#ffd600' : '#fff' }}>{scoreStr}</span>
                 </span>
                 {t.confidence != null && (
                   <span style={{ fontSize: 9, color: '#8899bb', fontWeight: 500 }}>
