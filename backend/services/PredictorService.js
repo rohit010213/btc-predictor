@@ -15,7 +15,7 @@
 //  UP:        wBull 4.5-6.9 AND bearScore <= 1
 //  DOWN:      wBear >= 7.0 (very strict)
 //  Expected:  75% UP | 64% DOWN | ~7 trades/day
-// ============================================================ =
+// ============================================================ 
 
 import { Trade } from '../models/Trade.js';
 import { runTAEngine } from './taEngine.js';
