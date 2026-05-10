@@ -123,15 +123,14 @@ export function useBtcEngine() {
           weightedBear: ta.weightedBear,
         };
       }
-    } catch {
-      // Pure fallback — price delta only
-      const diff = ptb && cp ? cp - ptb : 0;
+    } catch (e) {
+      console.error('[Engine] Prediction fetch failed:', e);
       pred = {
-        direction: diff >= 0 ? 'UP' : 'DOWN',
-        confidence: 51,
-        skip: false,
-        analysis: 'Backend unavailable — using price delta only.',
-        risk: 'No TA signals available.',
+        direction: 'SKIP',
+        confidence: 0,
+        skip: true,
+        analysis: 'Backend unavailable or error occurred.',
+        risk: 'Check backend status. Prediction could not be generated.',
         signals: {},
         score: 0,
         bearScore: 0,

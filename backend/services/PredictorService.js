@@ -34,13 +34,14 @@ const UP_BEAR_MAX = 1;    // NEW: max 1 opposing signal allowed for UP trades
 const DOWN_WBEAR_MIN = 7.0;  // DOWN below 7.0 = coin flip (47-50%) — skip
 
 
-function getISTHour() {
+export function getISTHour(date = new Date()) {
+    const d = typeof date === 'number' ? new Date(date * 1000) : date;
     return parseInt(
         new Intl.DateTimeFormat('en-US', {
             timeZone: 'Asia/Kolkata',
             hour: 'numeric',
             hour12: false,
-        }).format(new Date())
+        }).format(d)
     ) % 24;
 }
 
@@ -80,7 +81,7 @@ async function fetchPtbForTs(candleTs, currentPrice) {
 // ─────────────────────────────────────────────────────────────
 // Filter gate
 // ─────────────────────────────────────────────────────────────
-function applyFilters(ta, hour) {
+export function applyFilters(ta, hour) {
     const wBull = ta.weightedBull || 0;
     const wBear = ta.weightedBear || 0;
     const bScore = ta.bearScore || 0;
@@ -156,7 +157,7 @@ function getZoneLabel(ta, hour) {
 // ─────────────────────────────────────────────────────────────
 export async function runAutoPrediction(candleTs, currentPrice) {
     try {
-        const hour = getISTHour();
+        const hour = getISTHour(candleTs);
         console.log(`[Predictor] Candle ${candleTs} | IST=${hour}h | $${currentPrice?.toFixed(0)}`);
 
         // Fast hour gate — skip before any DB or network call

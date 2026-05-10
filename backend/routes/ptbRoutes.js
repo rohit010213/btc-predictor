@@ -1,6 +1,7 @@
 import express from 'express';
 import { getChainlinkState, getCurrentCandleTs, getCandleHistory } from '../services/chainlinkService.js';
 import { runTAEngine } from '../services/taEngine.js';
+import { applyFilters, getISTHour } from '../services/PredictorService.js';
 
 const router = express.Router();
 
@@ -39,6 +40,8 @@ router.get('/predict/:candleTs', (req, res) => {
   const currentPrice = chainlinkBtcPrice;
 
   const ta = runTAEngine(candleHistory, currentPrice, ptb);
+  const hour = getISTHour(candleTs);
+  const filter = applyFilters(ta, hour);
 
   const response = {
     candleTs,
@@ -46,14 +49,15 @@ router.get('/predict/:candleTs', (req, res) => {
     currentPrice,
     direction: ta.direction,
     confidence: ta.confidence,
-    skip: ta.skip,
-    reason: ta.reason,
+    skip: ta.skip || !filter.allowed,
+    reason: ta.skip ? ta.reason : filter.reason,
     score: ta.score,
     bearScore: ta.bearScore,
     weightedBull: ta.weightedBull,
     weightedBear: ta.weightedBear,
     signals: ta.signals,
     candlesAvailable: candleHistory.length,
+    hour,
     cached: false,
   };
 
