@@ -40,13 +40,14 @@ const UP_BEAR_MAX = 1;     // max 1 opposing signal for UP
 const DOWN_WBEAR_MIN = 5.0;   // all H15 DOWN trades with wBear>=5 won (85.7%)
 
 // ─────────────────────────────────────────────────────────────
-function getISTHour() {
+export function getISTHour(ts) {
+    const date = ts ? new Date(ts * 1000) : new Date();
     return parseInt(
         new Intl.DateTimeFormat('en-US', {
             timeZone: 'Asia/Kolkata',
             hour: 'numeric',
             hour12: false,
-        }).format(new Date())
+        }).format(date)
     ) % 24;
 }
 
@@ -79,7 +80,7 @@ async function fetchPtbForTs(candleTs, currentPrice) {
     return { ptb: currentPrice, source: 'estimate_live' };
 }
 
-function applyFilters(ta, hour) {
+export function applyFilters(ta, hour) {
     const wBull = ta.weightedBull || 0;
     const wBear = ta.weightedBear || 0;
     const bScore = ta.bearScore || 0;
